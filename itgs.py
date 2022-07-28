@@ -24,6 +24,7 @@ class Itgs:
 
     async def __aenter__(self) -> "Itgs":
         """allows support as an async context manager"""
+        return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         """closes any managed resources"""
@@ -50,3 +51,4 @@ class Itgs:
         self._closures.append(cleanup)
         self._conn = rqdb.connect_async(hosts=rqlite_ips)
         await self._conn.__aenter__()
+        return self._conn
