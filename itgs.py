@@ -4,6 +4,7 @@ the integration is only loaded upon request.
 from typing import Callable, Coroutine, List, Optional
 import rqdb
 import rqdb.async_connection
+import redis.asyncio
 import os
 
 
@@ -18,6 +19,12 @@ class Itgs:
         """
         self._conn: Optional[rqdb.async_connection.AsyncConnection] = None
         """the rqlite connection, if it has been opened"""
+
+        self._sentinel: Optional[redis.asyncio.Sentinel] = None
+        """the redis sentinel connection, if it has been opened"""
+
+        self._redis_main: Optional[redis.asyncio.Redis] = None
+        """the redis main connection, if it has been detected via the sentinel"""
 
         self._closures: List[Callable[["Itgs"], Coroutine]] = []
         """functions to run on __aexit__ to cleanup opened resources"""
@@ -52,3 +59,29 @@ class Itgs:
         self._conn = rqdb.connect_async(hosts=rqlite_ips)
         await self._conn.__aenter__()
         return self._conn
+
+    async def redis(self) -> redis.asyncio.Redis:
+        """returns or cerates and returns the main redis connection"""
+        if self._redis_main is not None:
+            return self._redis_main
+
+        redis_ips = os.environ.get("REDIS_IPS").split(",")
+        if not redis_ips:
+            raise ValueError(
+                "REDIS_IPs is not set and so a redis connection cannot be established"
+            )
+
+        async def cleanup(me: "Itgs") -> None:
+            if me._redis_main is not None:
+                await me._redis_main.close()
+                me._redis_main = None
+
+            me._sentinel = None
+
+        self._closures.append(cleanup)
+        self._sentinel = redis.asyncio.Sentinel(
+            sentinels=[(ip, 26379) for ip in redis_ips],
+            min_other_sentinels=len(redis_ips) // 2,
+        )
+        self._redis_main = self._sentinel.master_for("mymaster")
+        return self._redis_main

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from itgs import Itgs
+import secrets
 
 app = FastAPI(
     title="ezpbars",
@@ -33,3 +34,30 @@ async def test_rqdb():
         return JSONResponse(
             content={"message": "rqlite cluster responding normally"}, status_code=200
         )
+
+@app.get('/api/1/test/redis')
+async def test_redis():
+    """Checks if the redis cluster is responding normally (2xx response)"""
+    async with Itgs() as itgs:
+        redis = await itgs.redis()
+
+        test_key = '__test' + secrets.token_urlsafe(8)
+        test_val = secrets.token_urlsafe(8)
+        if not await redis.set(test_key, test_val):
+            return JSONResponse(
+                content={'message': f"failed to set {test_key=} to {test_val=} (non-OK)"},
+                status_code=503
+            )
+        val: bytes = await redis.get(test_key)
+        val = val.decode('utf-8')
+        if val != test_val:
+            return JSONResponse(
+                content={'message': f"expected {test_key=} to have {test_val=} but got {val=}"},
+                status_code=503
+            )
+        if not await redis.delete(test_key):
+            return JSONResponse(
+                content={'message': f'failed to delete {test_key=} (non-OK)'},
+                status_code=503
+            )
+        return JSONResponse(content={'message': 'redis cluster responding normally'})
