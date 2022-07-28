@@ -25,7 +25,7 @@ async def test_rqdb():
                 content={"message": f"invalid rowcount: {res.rowcount}"},
                 status_code=503,
             )
-        if res.results[0] != (2,):
+        if res.results[0] != [2]:
             return JSONResponse(
                 content={"message": f"invalid row: {repr(res.results[0])}"},
                 status_code=503,
