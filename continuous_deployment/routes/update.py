@@ -44,7 +44,7 @@ async def update(args: UpdateArgs, authorization: Optional[str] = Header(None)):
         return JSONResponse(
             content=StandardErrorResponse[ERROR_401_TYPE](
                 type="not_set", message="authorization header not set"
-            ),
+            ).dict(),
             status_code=401,
         )
     if not authorization.startswith("token "):
@@ -52,7 +52,7 @@ async def update(args: UpdateArgs, authorization: Optional[str] = Header(None)):
             content=StandardErrorResponse[ERROR_401_TYPE](
                 type="bad_format",
                 message="authorization header should start with 'token '",
-            ),
+            ).dict(),
             status_code=401,
         )
     token = authorization[len("token ") :]
@@ -61,7 +61,7 @@ async def update(args: UpdateArgs, authorization: Optional[str] = Header(None)):
             content=StandardErrorResponse[ERROR_403_TYPE](
                 type="invalid",
                 message="token is invalid",
-            ),
+            ).dict(),
             status_code=403,
         )
 
