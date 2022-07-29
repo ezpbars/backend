@@ -2,6 +2,8 @@
 from itgs import Itgs
 import asyncio
 import subprocess
+import platform
+import os
 
 
 async def listen_forever():
@@ -16,11 +18,17 @@ async def listen_forever():
             await pubsub.get_message(ignore_subscribe_messages=True, timeout=5)
         ) is None:
             pass
-    subprocess.Popen(
-        "bash /home/ec2-user/update_webapp.sh",
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        close_fds=True,
-    )
+    if platform.platform().lower().startswith('linux'):
+        subprocess.Popen(
+            ['nohup', 'bash', '/home/ec2-suer/update_webapp.sh'],
+            shell=True, stdin=None, stdout=None, stderr=None, preexec_fn=os.setpgrp
+        )
+    else:
+        subprocess.Popen(
+            "bash /home/ec2-user/update_webapp.sh",
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            close_fds=True,
+        )
 
 
 def listen_forever_sync():
