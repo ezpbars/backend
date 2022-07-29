@@ -8,10 +8,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: deploy
     name: deploy
     steps:
       - name: trigger-deploy
         env: 
           TOKEN: ${{ secrets.EZPBARS_DEPLOYMENT_SECRET }}
         run: |
-          curl -XPOST -H "Content-Type: application/json" https://ezpbars.com/api/1/continuous_deployment/update -d '{"repo":"backend"}' -H "authorization: $TOKEN"
+          curl -XPOST -H "Content-Type: application/json" https://ezpbars.com/api/1/continuous_deployment/update -d '{"repo":"backend"}' -H "authorization: token $TOKEN"
