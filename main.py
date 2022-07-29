@@ -2,11 +2,21 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from itgs import Itgs
 import secrets
+import updater
+import multiprocessing
+import continuous_deployment.router
 
+multiprocessing.Process(target=updater.listen_forever_sync, daemon=True).start()
 app = FastAPI(
     title="ezpbars",
     description="easy progress bars",
     version="1.0.0+alpha",
+    openapi_url="/api/1/openapi.json",
+    docs_url="/api/1/docs",
+)
+
+app.include_router(
+    continuous_deployment.router.router, prefix="/api/1/continuous_deployment"
 )
 
 
