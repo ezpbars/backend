@@ -20,7 +20,7 @@ app.include_router(
 )
 
 
-@app.get("/")
+@app.get("/api/1")
 def root():
     return {"message": "Hello World"}
 
