@@ -18,10 +18,14 @@ async def listen_forever():
             await pubsub.get_message(ignore_subscribe_messages=True, timeout=5)
         ) is None:
             pass
-    if platform.platform().lower().startswith('linux'):
+    if platform.platform().lower().startswith("linux"):
         subprocess.Popen(
-            ['nohup', 'bash', '/home/ec2-suer/update_webapp.sh'],
-            shell=True, stdin=None, stdout=None, stderr=None, preexec_fn=os.setpgrp
+            ["nohup", "bash", "/home/ec2-suer/update_webapp.sh"],
+            shell=True,
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            preexec_fn=os.setpgrp,
         )
     else:
         subprocess.Popen(
