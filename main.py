@@ -22,7 +22,7 @@ app.include_router(
 
 @app.get("/api/1")
 def root():
-    return {"message": "Hello World!"}
+    return {"message": "Hello World"}
 
 
 @app.get("/api/1/test/rqdb")
