@@ -5,7 +5,9 @@ import traceback
 
 
 async def handle_error(request: Request, exc: Exception) -> Response:
-    message = "\n".join(traceback.format_exception(exc, limit=5))
+    message = "\n".join(
+        traceback.format_exception(type(exc), exc, exc.__traceback__, limit=5)
+    )
     message = f"```\n{message}\n```"
     async with Itgs() as itgs:
         slack = await itgs.slack()
