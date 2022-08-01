@@ -6,7 +6,7 @@ import platform
 import os
 
 
-async def listen_forever():
+async def _listen_forever():
     """Subscribes to the redis channel updates:backend and upon
     recieving a message, calls /home/ec2-user/update_webapp.sh
     """
@@ -33,6 +33,20 @@ async def listen_forever():
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             close_fds=True,
         )
+
+
+async def listen_forever():
+    """Subscribes to the redis channel updates:backend and upon
+    recieving a message, calls /home/ec2-user/update_webapp.sh
+    """
+    if os.path.exists("updater.lock"):
+        return
+    with open("updater.lock", "w"):
+        pass
+    try:
+        await _listen_forever()
+    finally:
+        os.unlink("updater.lock")
 
 
 def listen_forever_sync():

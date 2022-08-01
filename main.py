@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from error_middleware import handle_error
 from itgs import Itgs
 import secrets
 import updater
@@ -13,6 +14,7 @@ app = FastAPI(
     version="1.0.0+alpha",
     openapi_url="/api/1/openapi.json",
     docs_url="/api/1/docs",
+    exception_handlers={Exception: handle_error},
 )
 
 app.include_router(
@@ -76,3 +78,11 @@ async def test_redis():
                 status_code=503,
             )
         return JSONResponse(content={"message": "redis cluster responding normally"})
+
+
+@app.get("/api/1/test/division")
+async def test_division(dividend: int, divisor: int):
+    """returns dividend/divisor - but gives an internal server error
+    if divisor = 0; useful for testing error reporting
+    """
+    return JSONResponse(content={"quotient": dividend / divisor}, status_code=200)
