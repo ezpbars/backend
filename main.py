@@ -1,20 +1,22 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from error_middleware import handle_error
+from error_middleware import handle_request_error
 from itgs import Itgs
 import secrets
 import updater
+import migrations.main
 import multiprocessing
 import continuous_deployment.router
 
 multiprocessing.Process(target=updater.listen_forever_sync, daemon=True).start()
+multiprocessing.Process(target=migrations.main.main_sync, daemon=True).start()
 app = FastAPI(
     title="ezpbars",
     description="easy progress bars",
     version="1.0.0+alpha",
     openapi_url="/api/1/openapi.json",
     docs_url="/api/1/docs",
-    exception_handlers={Exception: handle_error},
+    exception_handlers={Exception: handle_request_error},
 )
 
 app.include_router(
