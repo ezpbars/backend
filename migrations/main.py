@@ -50,7 +50,7 @@ async def main():
 
             migrations_to_run.sort()
             for migration in migrations_to_run:
-                mod_path = "migrations.runners." + migration.removesuffix(".py")
+                mod_path = "migrations.runners." + migration[:-3]
                 print(f"{mod_path=}")
                 mod = importlib.import_module(mod_path)
                 await mod.up(itgs)
