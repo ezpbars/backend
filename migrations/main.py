@@ -40,7 +40,7 @@ async def main():
 
             slack = await itgs.slack()
             migrations_to_run: List[str] = []
-            for path in os.scandir(os.path.join(__file__, "runners")):
+            for path in os.scandir(os.path.join("migrations", "runners")):
                 if path.is_file() and path.name.endswith(".py"):
                     response = await cursor.execute(
                         "SELECT 1 FROM migrations WHERE name = ?", (path.name,)
@@ -50,13 +50,16 @@ async def main():
 
             migrations_to_run.sort()
             for migration in migrations_to_run:
-                mod = importlib.import_module("migrations.runners." + migration)
+                mod_path = "migrations.runners." + migration.removesuffix(".py")
+                print(f"{mod_path=}")
+                mod = importlib.import_module(mod_path)
                 await mod.up(itgs)
                 await cursor.execute(
                     "INSERT INTO migrations (name, run_at) VALUES (?, ?)",
                     (migration, time.time()),
                 )
                 await slack.send_ops_message(f"ran migration `{migration}`")
+            print("all done")
         except Exception as e:
             await handle_error(e)
         finally:
@@ -71,4 +74,4 @@ def main_sync():
 
 
 if __name__ == "__main__":
-    main()
+    main_sync()
