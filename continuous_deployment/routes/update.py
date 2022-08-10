@@ -2,7 +2,13 @@ from fastapi import APIRouter, Header, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
-from models import StandardErrorResponse
+from models import (
+    AUTHORIZATION_INVALID_PREFIX,
+    AUTHORIZATION_NOT_SET,
+    AUTHORIZATION_UNKNOWN_TOKEN,
+    STANDARD_ERRORS_BY_CODE,
+    StandardErrorResponse,
+)
 import os
 import hmac
 from itgs import Itgs
@@ -17,23 +23,10 @@ class UpdateArgs(BaseModel):
     )
 
 
-ERROR_401_TYPE = Literal["not_set", "bad_format"]
-ERROR_403_TYPE = Literal["invalid"]
-
-
 @router.post(
     "/update",
     status_code=202,
-    responses={
-        "401": {
-            "description": "if authorization is not set",
-            "model": StandardErrorResponse[ERROR_401_TYPE],
-        },
-        "403": {
-            "description": "if the authorization is invalid",
-            "model": StandardErrorResponse[ERROR_403_TYPE],
-        },
-    },
+    responses=STANDARD_ERRORS_BY_CODE,
 )
 async def update(args: UpdateArgs, authorization: Optional[str] = Header(None)):
     """Triggers deployment of the latest version of the given repository.
@@ -41,29 +34,12 @@ async def update(args: UpdateArgs, authorization: Optional[str] = Header(None)):
     deployment secret
     """
     if authorization is None:
-        return JSONResponse(
-            content=StandardErrorResponse[ERROR_401_TYPE](
-                type="not_set", message="authorization header not set"
-            ).dict(),
-            status_code=401,
-        )
+        return AUTHORIZATION_NOT_SET
     if not authorization.startswith("token "):
-        return JSONResponse(
-            content=StandardErrorResponse[ERROR_401_TYPE](
-                type="bad_format",
-                message="authorization header should start with 'token '",
-            ).dict(),
-            status_code=401,
-        )
+        return AUTHORIZATION_INVALID_PREFIX
     token = authorization[len("token ") :]
     if not hmac.compare_digest(token, os.environ["DEPLOYMENT_SECRET"]):
-        return JSONResponse(
-            content=StandardErrorResponse[ERROR_403_TYPE](
-                type="invalid",
-                message="token is invalid",
-            ).dict(),
-            status_code=403,
-        )
+        return AUTHORIZATION_UNKNOWN_TOKEN
 
     async with Itgs() as itgs:
         redis = await itgs.redis()
