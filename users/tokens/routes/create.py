@@ -39,4 +39,9 @@ class CreateUserTokenResponse(BaseModel):
 async def create_user_token(
     args: CreateUserTokenRequest, authorization: Optional[str] = Header(None)
 ):
-    pass
+    """Creates a new user token which acts as an alternative form of
+    authentication, primarily used for server<->server communication
+
+    This requires cognito authentication. You can read more about the
+    forms of authentication at [/rest_auth.html](/rest_auth.html)
+    """
