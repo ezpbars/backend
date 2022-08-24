@@ -8,7 +8,7 @@ from pypika import Criterion
 from datetime import date
 
 
-ValueT = TypeVar('ValueT')
+ValueT = TypeVar("ValueT")
 
 
 class FilterItem(Generic[ValueT]):
@@ -16,6 +16,7 @@ class FilterItem(Generic[ValueT]):
     part of what makes the API useful is that these are often on joined columns
     or combinations of columns (e.g., filtering customer menus on user email)
     """
+
     operator: StandardOperator
     """The operator to use when comparing the value to the pseudocolumn"""
 
@@ -56,7 +57,7 @@ class FilterItem(Generic[ValueT]):
         formattable_value = self.value
         if isinstance(formattable_value, date):
             formattable_value = formattable_value.isoformat()
-        p = Parameter('?')
+        p = Parameter("?")
         if self.operator == StandardOperator.EQUAL:
             if formattable_value is None:
                 return term.isnull()
@@ -72,33 +73,51 @@ class FilterItem(Generic[ValueT]):
                 return Term.wrap_constant(False)
             qargs.append(formattable_value)
             return term > p
+        elif self.operator == StandardOperator.GREATER_THAN_OR_NULL:
+            if formattable_value is None:
+                return term.isnull()
+            qargs.append(formattable_value)
+            return term.isnull() | (term > p)
         elif self.operator == StandardOperator.GREATER_THAN_OR_EQUAL:
             if formattable_value is None:
                 return term.isnull()
             qargs.append(formattable_value)
             return term >= p
+        elif self.operator == StandardOperator.GREATER_THAN_OR_EQUAL_OR_NULL:
+            if formattable_value is None:
+                return term.isnull()
+            qargs.append(formattable_value)
+            return term.isnull() | (term >= p)
         elif self.operator == StandardOperator.LESS_THAN:
             if formattable_value is None:
                 return Term.wrap_constant(False)
             qargs.append(formattable_value)
             return term < p
+        elif self.operator == StandardOperator.LESS_THAN_OR_NULL:
+            if formattable_value is None:
+                return term.isnull()
+            qargs.append(formattable_value)
+            return term.isnull() | (term < p)
         elif self.operator == StandardOperator.LESS_THAN_OR_EQUAL:
             if formattable_value is None:
                 return term.isnull()
             qargs.append(formattable_value)
             return term <= p
+        elif self.operator == StandardOperator.LESS_THAN_OR_EQUAL_OR_NULL:
+            if formattable_value is None:
+                return term.isnull()
+            qargs.append(formattable_value)
+            return term.isnull() | (term <= p)
 
-        raise ValueError(f'Unsupported operator: {self.operator}')
+        raise ValueError(f"Unsupported operator: {self.operator}")
 
-    def to_model(self) -> 'FilterItemModel[ValueT]':
+    def to_model(self) -> "FilterItemModel[ValueT]":
         return FilterItemModel[self.__valuet__()](
-            operator=self.operator.value,
-            value=self.value
+            operator=self.operator.value, value=self.value
         )
 
     def __repr__(self) -> str:
-        return f'FilterItem[{self.__valuet__()}](StandardOperator.{self.operator.name}, {repr(self.value)})'
-
+        return f"FilterItem[{self.__valuet__()}](StandardOperator.{self.operator.name}, {repr(self.value)})"
 
     def __valuet__(self) -> type:
         """The value type for this class"""
@@ -107,22 +126,24 @@ class FilterItem(Generic[ValueT]):
 
 class FilterItemModel(GenericModel, Generic[ValueT]):
     operator: StandardOperator = Field(
-        title='Operator',
-        description='The operator to use when comparing the value to the pseudocolumn',
+        title="Operator",
+        description=(
+            "The operator to use when comparing the value to the pseudocolumn;"
+            " gtn acts like gt (greater than) but is also true if the value is null"
+        ),
     )
 
     value: ValueT = Field(
-        title='Value',
-        description='The value to compare the pseudocolumn to',
+        title="Value",
+        description="The value to compare the pseudocolumn to",
     )
 
     def to_result(self) -> FilterItem[ValueT]:
         """Returns the standard internal representation"""
         return FilterItem[self.__valuet__()](
-            operator=StandardOperator(self.operator),
-            value=self.value
+            operator=StandardOperator(self.operator), value=self.value
         )
 
     def __valuet__(self) -> type:
         """The value type for this class"""
-        return self.__fields__['value'].type_
+        return self.__fields__["value"].type_

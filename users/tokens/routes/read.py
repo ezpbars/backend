@@ -53,7 +53,7 @@ class UserTokenFilter(BaseModel):
     )
     name: Optional[FilterTextItemModel] = Field(
         None,
-        description="the human-readable name for identifying this token",
+        description="the human-readable name for identifying the token",
     )
     created_at: Optional[FilterItemModel[float]] = Field(
         None, description="when the token was created in seconds since the unix epoch"
