@@ -56,7 +56,7 @@ AUTHORIZATION_NOT_SET = JSONResponse(
 AUTHORIZATION_INVALID_PREFIX = JSONResponse(
     content=StandardErrorResponse[ERROR_401_TYPE](
         type="bad_format",
-        message="authorization header should start with 'token '",
+        message="authorization header should start with 'bearer '",
     ).dict(),
     status_code=401,
 )

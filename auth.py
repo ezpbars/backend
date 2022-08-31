@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 import json
 import time
+import traceback
 from typing import List, Literal, Optional, Tuple, TypedDict
 from fastapi.responses import Response
 from itgs import Itgs
@@ -74,15 +75,17 @@ async def auth_cognito(itgs: Itgs, authorization: Optional[str]) -> AuthResult:
     Returns:
         AuthResult: the result of interpreting the provided header
     """
+    if os.environ.get("ENVIRONMENT") == "dev":
+        return await auth_fake_cognito(itgs, authorization)
     if authorization is None:
         return AuthResult(
             None, error_type="not_set", error_response=AUTHORIZATION_NOT_SET
         )
-    if not authorization.startswith("token "):
+    if not authorization.startswith("bearer "):
         return AuthResult(
             None, error_type="bad_format", error_response=AUTHORIZATION_INVALID_PREFIX
         )
-    token = authorization[len("token ") :]
+    token = authorization[len("bearer ") :]
     try:
         unverified_headers = jwt.get_unverified_header(token)
     except:
@@ -114,16 +117,57 @@ async def auth_cognito(itgs: Itgs, authorization: Optional[str]) -> AuthResult:
             key=key,
             algorithms=[signing_key["alg"]],
             options={"require": ["sub", "iss", "exp", "aud", "token_use"]},
+            audience=os.environ["AUTH_CLIENT_ID"],
+            issuer=os.environ["EXPECTED_ISSUER"],
         )
     except:
         return AuthResult(
             None, error_type="invalid", error_response=AUTHORIZATION_UNKNOWN_TOKEN
         )
-    if (
-        payload["iss"] != os.environ["EXPECTED_ISSUER"]
-        or payload["aud"] != os.environ["AUTH_CLIENT_ID"]
-        or payload["token_use"] != "id"
-    ):
+    if payload["token_use"] != "id":
+        return AuthResult(
+            None, error_type="invalid", error_response=AUTHORIZATION_UNKNOWN_TOKEN
+        )
+    return AuthResult(SuccessfulAuthResult(payload["sub"]), None, None)
+
+
+async def auth_fake_cognito(itgs: Itgs, authorization: Optional[str]) -> AuthResult:
+    """verifies the given authorization token matches valid development-signed
+    JWT
+
+    Args:
+        itgs (Itgs): the integrations to use
+        authorization (str, None): the provided authorization header
+
+    Returns:
+        AuthResult: the result of interpreting the provided header
+    """
+    assert os.environ.get("ENVIRONMENT") == "dev"
+    if authorization is None:
+        return AuthResult(
+            None, error_type="not_set", error_response=AUTHORIZATION_NOT_SET
+        )
+    if not authorization.startswith("bearer "):
+        return AuthResult(
+            None, error_type="bad_format", error_response=AUTHORIZATION_INVALID_PREFIX
+        )
+    token = authorization[len("bearer ") :]
+    secret = os.environ["DEV_SECRET_KEY"]
+    try:
+        payload = jwt.decode(
+            token,
+            key=secret,
+            algorithms=["HS256"],
+            options={"require": ["sub", "iss", "exp", "aud", "token_use"]},
+            audience=os.environ["AUTH_CLIENT_ID"],
+            issuer=os.environ["EXPECTED_ISSUER"],
+        )
+    except:
+        traceback.print_exc()
+        return AuthResult(
+            None, error_type="invalid", error_response=AUTHORIZATION_UNKNOWN_TOKEN
+        )
+    if payload["token_use"] != "id":
         return AuthResult(
             None, error_type="invalid", error_response=AUTHORIZATION_UNKNOWN_TOKEN
         )
@@ -172,11 +216,11 @@ async def auth_shared_secret(itgs: Itgs, authorization: Optional[str]) -> AuthRe
         return AuthResult(
             None, error_type="not_set", error_response=AUTHORIZATION_NOT_SET
         )
-    if not authorization.startswith("token "):
+    if not authorization.startswith("bearer "):
         return AuthResult(
             None, error_type="bad_format", error_response=AUTHORIZATION_INVALID_PREFIX
         )
-    token = authorization[len("token ") :]
+    token = authorization[len("bearer ") :]
     conn = await itgs.conn()
     cursor = conn.cursor()
     response = await cursor.execute(
@@ -214,6 +258,6 @@ async def auth_any(itgs: Itgs, authorization: Optional[str]) -> AuthResult:
         return AuthResult(
             result=None, error_type="not_set", error_response=AUTHORIZATION_NOT_SET
         )
-    if authorization.startswith("token ep_ut_"):
+    if authorization.startswith("bearer ep_ut_"):
         return await auth_shared_secret(itgs, authorization)
     return await auth_cognito(itgs, authorization)

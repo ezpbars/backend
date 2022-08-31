@@ -109,7 +109,13 @@ async def read_user_tokens(
             value=auth_result.result.sub,
         )
         filters_to_apply = flattened_filters(
-            args.filters.dict() if args.filters is not None else dict()
+            dict(
+                (k, v.to_result())
+                for k, v in args.filters.__dict__.items()
+                if v is not None
+            )
+            if args.filters is not None
+            else dict()
         )
         items = await raw_read_user_tokens(itgs, filters_to_apply, sort, args.limit + 1)
         next_page_sort: Optional[List[SortItem]] = None
@@ -183,7 +189,7 @@ async def raw_read_user_tokens(
     cursor = conn.cursor("none")
     response = await cursor.execute(query.get_sql(), qargs)
     items: List[UserToken] = []
-    for row in response.results:
+    for row in response.results or []:
         items.append(
             UserToken(
                 user_sub=row[0],
