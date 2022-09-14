@@ -12,6 +12,7 @@ import migrations.main
 import multiprocessing
 import continuous_deployment.router
 import users.router
+import progress_bars.router
 
 multiprocessing.Process(target=updater.listen_forever_sync, daemon=True).start()
 multiprocessing.Process(target=migrations.main.main_sync, daemon=True).start()
@@ -36,6 +37,7 @@ app.include_router(
     continuous_deployment.router.router, prefix="/api/1/continuous_deployment"
 )
 app.include_router(users.router.router, prefix="/api/1/users")
+app.include_router(progress_bars.router.router, prefix="/api/1/progress_bars")
 app.router.redirect_slashes = False
 
 

@@ -68,7 +68,7 @@ async def update_user_token(
         )
         if response.rows_affected is not None and response.rows_affected > 0:
             return JSONResponse(
-                content=UpdateUserTokenResponse(name=args.name), status_code=200
+                content=UpdateUserTokenResponse(name=args.name).dict(), status_code=200
             )
         return JSONResponse(
             content=StandardErrorResponse[ERROR_404_TYPE](

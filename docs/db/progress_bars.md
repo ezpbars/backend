@@ -28,7 +28,7 @@ time for each step comes from a consistent distribution.
     count and n is the number of traces over the previous rolling max age (one
     week if not set). Accurately samples but has no hard limit on the number of
     samples retained.
-- `version (integer not null)`: the numebr of times the steps and traces had to
+- `version (integer not null)`: the number of times the steps and traces had to
   be reset because we received a trace with different steps
 - `created_at (real not null)`: when this record was created in seconds since
   the unix epoch
