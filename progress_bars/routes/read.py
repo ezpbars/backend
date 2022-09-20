@@ -223,15 +223,17 @@ async def raw_read_progress_bars(
                 sampling_technique=row[5],
                 created_at=row[6],
                 default_step_config=ProgressBarStep(
+                    uid=row[7],
+                    name="default",
                     user_sub=row[0],
                     progress_bar_name=row[2],
                     position=0,
                     iterated=row[8],
-                    one_off_technique=[9],
-                    one_off_percentile=[10],
-                    iterated_technique=[11],
-                    iterated_percentile=[12],
-                    created_at=[13],
+                    one_off_technique=row[9],
+                    one_off_percentile=row[10],
+                    iterated_technique=row[11],
+                    iterated_percentile=row[12],
+                    created_at=row[13],
                 ),
             )
         )

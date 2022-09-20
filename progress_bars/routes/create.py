@@ -148,7 +148,6 @@ async def create_progress_bar(
                         progress_bar_id,
                         uid,
                         name,
-                        default,
                         position,
                         iterated,
                         one_off_technique,
@@ -159,7 +158,7 @@ async def create_progress_bar(
                     )
                     SELECT
                         progress_bars.id,
-                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?
                     FROM progress_bars
                     WHERE
                         progress_bars.uid = ?

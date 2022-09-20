@@ -94,59 +94,61 @@ async def update_progress_bar(
         cursor = conn.cursor("none")
         response = await cursor.executemany3(
             (
-                """
-                UPDATE progress_bars
-                SET
-                    sampling_max_count = ?,
-                    sampling_max_age_seconds = ?,
-                    sampling_technique = ?
-                WHERE
-                    progress_bars.name = ?
-                    AND EXISTS (
-                        SELECT 1 FROM users
-                        WHERE users.id = progress_bars.user_id
-                        AND users.sub = ?
-                    )
-                """,
                 (
-                    args.sampling_max_count,
-                    args.sampling_max_age_seconds,
-                    args.sampling_technique,
-                    name,
-                    auth_result.result.sub,
+                    """
+                    UPDATE progress_bars
+                    SET
+                        sampling_max_count = ?,
+                        sampling_max_age_seconds = ?,
+                        sampling_technique = ?
+                    WHERE
+                        progress_bars.name = ?
+                        AND EXISTS (
+                            SELECT 1 FROM users
+                            WHERE users.id = progress_bars.user_id
+                            AND users.sub = ?
+                        )
+                    """,
+                    (
+                        args.sampling_max_count,
+                        args.sampling_max_age_seconds,
+                        args.sampling_technique,
+                        name,
+                        auth_result.result.sub,
+                    ),
                 ),
-            ),
-            (
-                """
-                UPDATE progress_bar_steps
-                SET
-                    one_off_technique = ?,
-                    one_off_percentile = ?,
-                    iterated_technique = ?,
-                    iterated_percentile = ?
-                WHERE 
-                    EXISTS (
-                        SELECT 1 FROM progress_bars
-                        WHERE progress_bars.id = progress_bar_steps.progress_bar_id
-                            AND EXISTS (
-                                SELECT 1 FROM users
-                                WHERE users.id = user_tokens.user_id
-                                  AND users.sub = ?
-                            )
-                            AND progress_bars.name = ?
-                    )
-                    AND progress_bar_steps.name = ?
-                """,
                 (
-                    args.default_step_config.one_off_technique,
-                    args.default_step_config.one_off_percentile,
-                    args.default_step_config.iterated_technique,
-                    args.default_step_config.iterated_percentile,
-                    auth_result.result.sub,
-                    name,
-                    "default",
+                    """
+                    UPDATE progress_bar_steps
+                    SET
+                        one_off_technique = ?,
+                        one_off_percentile = ?,
+                        iterated_technique = ?,
+                        iterated_percentile = ?
+                    WHERE 
+                        EXISTS (
+                            SELECT 1 FROM progress_bars
+                            WHERE progress_bars.id = progress_bar_steps.progress_bar_id
+                                AND EXISTS (
+                                    SELECT 1 FROM users
+                                    WHERE users.id = progress_bars.user_id
+                                    AND users.sub = ?
+                                )
+                                AND progress_bars.name = ?
+                        )
+                        AND progress_bar_steps.name = ?
+                    """,
+                    (
+                        args.default_step_config.one_off_technique,
+                        args.default_step_config.one_off_percentile,
+                        args.default_step_config.iterated_technique,
+                        args.default_step_config.iterated_percentile,
+                        auth_result.result.sub,
+                        name,
+                        "default",
+                    ),
                 ),
-            ),
+            )
         )
         if (
             response.items[0].rows_affected is not None
