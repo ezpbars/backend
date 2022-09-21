@@ -1,8 +1,17 @@
-from typing import Literal
+import secrets
+import time
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
+from fastapi import APIRouter, Header
+from fastapi.responses import JSONResponse, Response
+from auth import auth_any
+from itgs import Itgs
+from models import STANDARD_ERRORS_BY_CODE, StandardErrorResponse
+
+router = APIRouter()
 
 
-class CreateProgressBarStepRequestItem(BaseModel):
+class CreateProgressBarStepRequest(BaseModel):
     iterated: int = Field(
         0,
         description="""1 if the step is iterated, i.e., it consists of
@@ -59,7 +68,7 @@ following values:
     )
 
 
-class CreateProgressBarStepResponseItem(BaseModel):
+class CreateProgressBarStepResponse(BaseModel):
     uid: str = Field(description="the primary stable identifyer for this progress bar")
     name: str = Field(
         description="the human-readable name for identifying this progress bar"
@@ -117,3 +126,189 @@ following values:
     created_at: float = Field(
         description="when the progress bar was created in seconds since the unix epoch"
     )
+
+
+ERROR_404_TYPE = Literal["not_found"]
+"""the error type for a 404 response"""
+
+ERROR_409_TYPE = Literal["step_name_already_exists"]
+"""the error type for a 409 response"""
+
+
+@router.post(
+    "/",
+    status_code=200,
+    response_model=CreateProgressBarStepRequest,
+    responses={
+        "409": {
+            "description": "conflict- a step already exists in this progress bar with this name",
+            "model": StandardErrorResponse[ERROR_409_TYPE],
+        },
+        "404": {
+            "description": "the progress bar step with that name does not exist",
+            "model": StandardErrorResponse[ERROR_404_TYPE],
+        },
+        **STANDARD_ERRORS_BY_CODE,
+    },
+)
+async def create_progress_bar_step(
+    args: CreateProgressBarStepRequest,
+    pbar_name: str,
+    step_name: str,
+    authorization: Optional[str] = Header(None),
+):
+    """creates a new step for a progress bar
+
+    This accepts cognito or user token authentication. You can read more about the
+    forms of authentication at [/rest_auth.html](/rest_auth.html)"""
+    async with Itgs() as itgs:
+        auth_result = await auth_any(itgs, authorization)
+        if not auth_result.success:
+            return auth_result.error_response
+        if step_name == "default":
+            return JSONResponse(
+                content=StandardErrorResponse[ERROR_409_TYPE](
+                    type="step_name_already_exists",
+                    message="there is already a step in this progress bar with that name",
+                ).dict(),
+                status_code=409,
+            )
+        now = time.time()
+        step_uid = "ep_pbs_" + secrets.token_urlsafe(8)
+        conn = await itgs.conn()
+        cursor = conn.cursor("none")
+        response = await cursor.executemany3(
+            (
+                (
+                    """
+                    WITH progress_bar_max_steps AS (
+                        SELECT
+                            progress_bars.id AS progress_bar_id,
+                            MAX(progress_bar_steps.position) AS max_position
+                        FROM progress_bars
+                        JOIN progress_bar_steps ON progress_bar_steps.progress_bar_id = progress_bars.id
+                        GROUP BY progress_bars.id
+                    )
+                    INSERT INTO progress_bar_steps (
+                        progress_bar_id,
+                        uid,
+                        name,
+                        position,
+                        iterated,
+                        one_off_technique,
+                        one_off_percentile,
+                        iterated_technique,
+                        iterated_percentile,
+                        created_at
+                    )
+                    SELECT
+                        progress_bars.id,
+                        ?, ?,
+                        progress_bar_max_steps.max_position + 1,
+                        ?, ?, ?, ?, ?, ?
+                    FROM progress_bars
+                    JOIN progress_bar_max_steps ON progress_bar_max_steps.progress_bar_id = progress_bars.id
+                    WHERE
+                        EXISTS (
+                            SELECT 1 FROM users
+                            WHERE users.id = progress_bars.user_id
+                              AND users.sub = ?
+                        )
+                        AND NOT EXISTS (
+                            SELECT 1 FROM progress_bar_steps
+                            WHERE
+                              progress_bar_step.progress_bar_id = progress_bars.id
+                              AND progress_bar_step.name = ?
+                        )
+                    """,
+                    (
+                        step_uid,
+                        step_name,
+                        args.iterated,
+                        args.one_off_technique,
+                        args.one_off_percentile,
+                        args.iterated_technique,
+                        args.iterated_percentile,
+                        now,
+                        auth_result.result.sub,
+                        step_name,
+                    ),
+                )(
+                    """
+                    UPDATE progress_bars
+                    SET progress_bars.version = progress_bars.version + 1
+                    WHERE
+                        EXISTS (
+                            SELECT 1 FROM progress_bar_steps
+                            WHERE progress_bars.id = progress_bar_steps.progress_bar_id
+                              AND progress_bar_steps.uid = ?
+                        )
+                    """,
+                    (step_uid,),
+                ),
+                (
+                    """
+                    DELETE FROM progress_bar_traces
+                    WHERE
+                        EXISTS (
+                            SELECT 1 FROM progress_bar_steps
+                            WHERE progress_bar_traces.progress_bar_id = progress_bar_steps.progress_bar_id
+                              AND progress_bar_steps.uid = ?
+                        )
+                    """,
+                    (step_uid,),
+                ),
+            )
+        )
+        if (
+            response.items[0].rows_affected is not None
+            and response.items[0].rows_affected > 0
+        ):
+            pos_response = await cursor.execute(
+                """
+                SELECT position
+                FROM progress_bar_steps
+                WHERE uid = ?""",
+                (step_uid,),
+            )
+            if not pos_response.results:
+                return Response(status_code=503, headers={"retry-after": "1"})
+            return JSONResponse(
+                content=CreateProgressBarStepResponse(
+                    uid=step_uid,
+                    name=step_name,
+                    position=pos_response.results[0][0],
+                    iterated=args.iterated,
+                    one_off_technique=args.one_off_technique,
+                    one_off_percentile=args.one_off_percentile,
+                    iterated_technique=args.iterated_percentile,
+                    created_at=now,
+                ).dict(),
+                status_code=201,
+            )
+        response = await cursor.execute(
+            """
+            SELECT 1 FROM progress_bars
+            WHERE
+                EXISTS (
+                    SELECT 1 FROM users
+                    WHERE users.id = progress_bars.user_id
+                        AND users.sub = ?
+                )
+            """,
+            (auth_result.result.sub,),
+        )
+        if response.results:
+            return JSONResponse(
+                content=StandardErrorResponse[ERROR_409_TYPE](
+                    type="step_name_already_exists",
+                    message="there is already a step in this progress bar with that name",
+                ).dict(),
+                status_code=409,
+            )
+        return JSONResponse(
+            content=StandardErrorResponse[ERROR_404_TYPE](
+                type="not_found", message="there is no progress bar with that name"
+            ).dict(),
+            status_code=404,
+        )

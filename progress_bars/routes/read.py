@@ -15,7 +15,6 @@ from resources.sort_item import SortItem, SortItemModel
 from resources.filter_text_item import FilterTextItem, FilterTextItemModel
 from itgs import Itgs
 from resources.standard_text_operator import StandardTextOperator
-from users.tokens.routes.read import item_pseudocolumns
 
 
 class ProgressBar(BaseModel):
@@ -98,7 +97,7 @@ router = APIRouter()
 async def read_progress_bars(
     args: ReadProgressbarRequest, authorization: Optional[str] = Header(None)
 ):
-    """lists out the progress bars; the user_sub filter will be forced to mathc
+    """lists out the progress bars; the user_sub filter will be forced to match
     the authorized user
 
     This accepts cognito or user token authentication. You can read more about the
@@ -240,7 +239,7 @@ async def raw_read_progress_bars(
     return items
 
 
-def item_psuedocolumns(item: ProgressBar) -> dict:
+def item_pseudocolumns(item: ProgressBar) -> dict:
     """returns the dictified item such that the keys in the return dict match
     the keys of the sort options"""
     return item.dict()

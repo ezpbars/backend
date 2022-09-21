@@ -7,10 +7,10 @@ from models import STANDARD_ERRORS_BY_CODE, StandardErrorResponse
 from pydantic import BaseModel, Field
 
 from progress_bars.steps.routes.create import (
-    CreateProgressBarStepRequestItem,
-    CreateProgressBarStepResponseItem,
+    CreateProgressBarStepRequest,
+    CreateProgressBarStepResponse,
 )
-from progress_bars.steps.routes.update import UpdateProgressBarStepResponseItem
+from progress_bars.steps.routes.update import UpdateProgressBarStepResponse
 
 router = APIRouter()
 
@@ -43,8 +43,8 @@ class UpdateProgressBarRequest(BaseModel):
     week if not set). Accurately samples but has no hard limit on the number of
     samples retained.""",
     )
-    default_step_config: CreateProgressBarStepRequestItem = Field(
-        default_factory=lambda: CreateProgressBarStepRequestItem(),
+    default_step_config: CreateProgressBarStepRequest = Field(
+        default_factory=lambda: CreateProgressBarStepRequest(),
         description="the configuration to use for steps by default",
     )
 
@@ -59,7 +59,7 @@ class UpdateProgressBarResponse(BaseModel):
     sampling_technique: str = Field(
         description="the technique to use when selecting samples to be used for prediction"
     )
-    default_step_config: UpdateProgressBarStepResponseItem = Field(
+    default_step_config: UpdateProgressBarStepResponse = Field(
         description="the default configuration used for steps"
     )
 
@@ -159,7 +159,7 @@ async def update_progress_bar(
                     sampling_max_count=args.sampling_max_count,
                     sampling_max_age_seconds=args.sampling_max_age_seconds,
                     sampling_technique=args.sampling_technique,
-                    default_step_config=UpdateProgressBarStepResponseItem(
+                    default_step_config=UpdateProgressBarStepResponse(
                         one_off_technique=args.default_step_config.one_off_technique,
                         one_off_percentile=args.default_step_config.one_off_percentile,
                         iterated_technique=args.default_step_config.iterated_technique,

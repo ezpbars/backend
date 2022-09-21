@@ -8,8 +8,8 @@ from auth import auth_any
 from itgs import Itgs
 from models import STANDARD_ERRORS_BY_CODE, StandardErrorResponse
 from progress_bars.steps.routes.create import (
-    CreateProgressBarStepRequestItem,
-    CreateProgressBarStepResponseItem,
+    CreateProgressBarStepRequest,
+    CreateProgressBarStepResponse,
 )
 
 router = APIRouter()
@@ -45,8 +45,8 @@ class CreateProgressBarRequest(BaseModel):
     week if not set). Accurately samples but has no hard limit on the number of
     samples retained.""",
     )
-    default_step_config: CreateProgressBarStepRequestItem = Field(
-        default_factory=lambda: CreateProgressBarStepRequestItem(),
+    default_step_config: CreateProgressBarStepRequest = Field(
+        default_factory=lambda: CreateProgressBarStepRequest(),
         description="the configuration to use for steps by default",
     )
 
@@ -68,7 +68,7 @@ class CreateProgressBarResponse(BaseModel):
     created_at: float = Field(
         description="when the progress bar was created in seconds since the unix epoch"
     )
-    default_step_config: CreateProgressBarStepResponseItem = Field(
+    default_step_config: CreateProgressBarStepResponse = Field(
         description="the default configuration used for steps"
     )
 
@@ -190,7 +190,7 @@ async def create_progress_bar(
                     sampling_max_age_seconds=args.sampling_max_age_seconds,
                     sampling_technique=args.sampling_technique,
                     created_at=now,
-                    default_step_config=CreateProgressBarStepResponseItem(
+                    default_step_config=CreateProgressBarStepResponse(
                         uid=step_uid,
                         name="default",
                         position=0,
