@@ -44,7 +44,7 @@ async def delete_progress_bar_trace(
                 AND EXISTS (
                     SELECT 1 FROM progress_bars
                     WHERE progress_bars.name = ?
-                      AND progress_bar.id = progress_bar_traces.progress_bar_id
+                      AND progress_bars.id = progress_bar_traces.progress_bar_id
                       AND EXISTS (
                         SELECT 1 FROM users
                         WHERE users.id = progress_bars.user_id
