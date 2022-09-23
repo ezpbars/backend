@@ -65,18 +65,21 @@ class Itgs:
                 me._conn = None
 
         self._closures.append(cleanup)
-        self._conn = rqdb.connect_async(hosts=rqlite_ips, log=rqdb.LogConfig(
-            read_start={"method": loguru.logger.debug},
-            read_response={"method": loguru.logger.debug},
-            read_stale={"method": loguru.logger.debug},
-            write_start={"method": loguru.logger.debug},
-            write_response={"method": loguru.logger.debug},
-            connect_timeout={"method": loguru.logger.warning},
-            hosts_exhausted={"method": loguru.logger.critical},
-            non_ok_response={"method": loguru.logger.warning},
-            backup_start={"method": loguru.logger.info},
-            backup_end={"method": loguru.logger.info}
-        ))
+        self._conn = rqdb.connect_async(
+            hosts=rqlite_ips,
+            log=rqdb.LogConfig(
+                read_start={"method": loguru.logger.debug},
+                read_response={"method": loguru.logger.debug},
+                read_stale={"method": loguru.logger.debug},
+                write_start={"method": loguru.logger.debug},
+                write_response={"method": loguru.logger.debug},
+                connect_timeout={"method": loguru.logger.warning},
+                hosts_exhausted={"method": loguru.logger.critical},
+                non_ok_response={"method": loguru.logger.warning},
+                backup_start={"method": loguru.logger.info},
+                backup_end={"method": loguru.logger.info},
+            ),
+        )
         await self._conn.__aenter__()
         return self._conn
 

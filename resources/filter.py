@@ -7,7 +7,9 @@ from resources.sort_item import SortItem
 from pypika.terms import Term, Criterion
 
 
-def flattened_filters(filters: Dict[str, Optional[Union[FilterItem, FilterTextItem]]]) -> List[Tuple[str, Union[FilterItem, FilterTextItem]]]:
+def flattened_filters(
+    filters: Dict[str, Optional[Union[FilterItem, FilterTextItem]]]
+) -> List[Tuple[str, Union[FilterItem, FilterTextItem]]]:
     """Determines the filters to apply to the given query as a list.
     The filters usually comes from __dict__'ing a dataclass, though it does not
     have to.
@@ -54,9 +56,7 @@ def flattened_filters(filters: Dict[str, Optional[Union[FilterItem, FilterTextIt
 
 
 def sort_criterion(
-    sort: List[SortItem],
-    pseudocolumn: Callable[[str], Term],
-    args: List[Any]
+    sort: List[SortItem], pseudocolumn: Callable[[str], Term], args: List[Any]
 ) -> Criterion:
     """Determines the correct criterion for the given sort. This returns
     a criterion which restricts the result to only those that were requested
@@ -105,7 +105,7 @@ def sort_criterion(
             # nothing is after null in a descending sort
             continue
         else:
-            raise ValueError(f'Unknown sort direction: {sort_item.dir}')
+            raise ValueError(f"Unknown sort direction: {sort_item.dir}")
 
         for sub_sort_item, sub_term in zip(sort[:idx], terms[:idx]):
             sub_filter = sub_sort_item.equal_filter().applied_to(sub_term, args)
