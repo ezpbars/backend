@@ -2,6 +2,7 @@
 as if by secrets.token_urlsafe()
 """
 
+
 def is_safe_uid(uid: str) -> bool:
     """Determines if the given uid looks like a standard uid, ie., it's not empty or
     excessively long and it has urlsafe characters.
@@ -10,4 +11,7 @@ def is_safe_uid(uid: str) -> bool:
         return False
     if len(uid) > 155:
         return False
-    return all(c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_' for c in uid)
+    return all(
+        c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+        for c in uid
+    )

@@ -1,4 +1,3 @@
-from calendar import c
 from typing import Literal, Optional
 from fastapi import APIRouter, Header
 from fastapi.responses import Response, JSONResponse
@@ -22,6 +21,10 @@ ERROR_409_TYPE = Literal["cannot_delete_default_step"]
         "404": {
             "description": "not found - there is no progress bar step with that name",
             "model": StandardErrorResponse[ERROR_404_TYPE],
+        },
+        "409": {
+            "description": "you may not delete the default step",
+            "model": StandardErrorResponse[ERROR_409_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,
     },

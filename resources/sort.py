@@ -6,6 +6,7 @@ from resources.sort_item import SortItem
 
 class InvalidSortError(Exception):
     """Generic base class for errors when specifying a sort order."""
+
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
@@ -15,11 +16,11 @@ class InvalidSortError(Exception):
         return JSONResponse(
             status_code=422,
             content={
-                'detail': [
+                "detail": [
                     {
-                        'loc': ['body', 'sort'],
-                        'msg': self.message,
-                        'type': f'invalid_sort_error.{self.__class__.__name__}'
+                        "loc": ["body", "sort"],
+                        "msg": self.message,
+                        "type": f"invalid_sort_error.{self.__class__.__name__}",
                     }
                 ]
             },
@@ -42,23 +43,30 @@ class InconsistentPaginationError(InvalidSortError):
     that unique column is nullable (and shouldn't be marked unique for sorting
     purposes), or the sort is invalid.
     """
+
     def __init__(self) -> None:
-        super().__init__('If a sort has any non-null fields, all unique fields must be set')
+        super().__init__(
+            "If a sort has any non-null fields, all unique fields must be set"
+        )
 
 
 class DuplicateSortItemsError(InvalidSortError):
     """Raised if a list of sort items contains duplicate keys."""
+
     def __init__(self, duplicate_keys: List[str]) -> None:
-        super().__init__(f'Duplicate sort keys: {duplicate_keys}')
+        super().__init__(f"Duplicate sort keys: {duplicate_keys}")
 
 
 class UnknownSortItemError(InvalidSortError):
     """Raised if a list of sort items contains an unknown sort item"""
+
     def __init__(self, key: str) -> None:
-        super().__init__(f'Unknown sort key: {key}')
+        super().__init__(f"Unknown sort key: {key}")
 
 
-def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[str]) -> List[SortItem]:
+def cleanup_sort(
+    options: Tuple[type], sort: List[SortItem], unique_keys: List[str]
+) -> List[SortItem]:
     """Cleans up a sort options that may have come from a client, raising
     the appropriate InvalidSortError if they are invalid.
 
@@ -94,7 +102,9 @@ def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[s
     ```
     """
     has_any_pagination_set = any(s.after is not None for s in sort)
-    cannot_have_pagination_set = any(s.after is None for s in sort if s.key in unique_keys)
+    cannot_have_pagination_set = any(
+        s.after is None for s in sort if s.key in unique_keys
+    )
     if sort and has_any_pagination_set and cannot_have_pagination_set:
         raise InconsistentPaginationError()
 
@@ -111,16 +121,22 @@ def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[s
     valid_items: Dict[str, type] = {}
     for k, v in enumerate(options):
         type_args = get_args(v)
-        assert len(type_args) == 2, f'options[{k}] = {v} should have 2 type arguments (expected SortItem[SortKeyT, ValueT])'
+        assert (
+            len(type_args) == 2
+        ), f"options[{k}] = {v} should have 2 type arguments (expected SortItem[SortKeyT, ValueT])"
         (sort_key_type, value_type) = type_args
-        assert hasattr(sort_key_type, '__origin__') and sort_key_type.__origin__ == Literal, 'Sort key type must be a Literal'
+        assert (
+            hasattr(sort_key_type, "__origin__") and sort_key_type.__origin__ == Literal
+        ), "Sort key type must be a Literal"
 
         sort_args = get_args(sort_key_type)
-        assert len(sort_args) == 1, 'Sort key type must have exactly one argument'
-        assert isinstance(sort_args[0], str), 'Sort key type argument must be a string'
+        assert len(sort_args) == 1, "Sort key type must have exactly one argument"
+        assert isinstance(sort_args[0], str), "Sort key type argument must be a string"
 
         sort_key = sort_args[0]
-        assert sort_key not in valid_items, f'Duplicate sort key in {options}: {sort_key}'
+        assert (
+            sort_key not in valid_items
+        ), f"Duplicate sort key in {options}: {sort_key}"
         valid_items[sort_key] = value_type
 
     if any(s.key not in valid_items for s in sort):
@@ -129,7 +145,7 @@ def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[s
 
     if any(s.__valuet__() != valid_items[s.key] for s in sort):
         mismatched_keys = [s.key for s in sort if s.__valuet__() != valid_items[s.key]]
-        raise InvalidSortError(f'Sort keys {mismatched_keys} have mismatched types')
+        raise InvalidSortError(f"Sort keys {mismatched_keys} have mismatched types")
 
     cleaned_sort = list(sort)
 
@@ -139,11 +155,10 @@ def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[s
             idx_of_first_unique_key = idx
             break
 
-
     has_unique_key = idx_of_first_unique_key is not None
     if not has_unique_key:
-        assert unique_keys, 'No unique keys specified'
-        assert unique_keys[0] in valid_items, f'Unknown unique key: {unique_keys[0]}'
+        assert unique_keys, "No unique keys specified"
+        assert unique_keys[0] in valid_items, f"Unknown unique key: {unique_keys[0]}"
 
         if any(s.after is not None for s in sort):
             raise InconsistentPaginationError()
@@ -152,24 +167,26 @@ def cleanup_sort(options: Tuple[type], sort: List[SortItem], unique_keys: List[s
         key_type = Literal[key]  # type: ignore
         cleaned_sort.append(
             SortItem[key_type, valid_items[key]](
-                unique_keys[0],
-                SortDir.ASCENDING,
-                None,
-                None
+                unique_keys[0], SortDir.ASCENDING, None, None
             )
         )
     else:
         # we consider a column unique for sorting only if it is not nullable,
         # meaning it's truly unique, meaning that we can ignore any sort items
         # after the first unique column and get an equivalent sort.
-        cleaned_sort = cleaned_sort[:idx_of_first_unique_key + 1]
+        cleaned_sort = cleaned_sort[: idx_of_first_unique_key + 1]
 
     return cleaned_sort
 
 
 def reverse_sort(
     sort: List[SortItem],
-    mode: Union[Literal['swap_exclusivity'], Literal['maintain_exclusivity'], Literal['make_inclusive'], Literal['make_exclusive']]
+    mode: Union[
+        Literal["swap_exclusivity"],
+        Literal["maintain_exclusivity"],
+        Literal["make_inclusive"],
+        Literal["make_exclusive"],
+    ],
 ) -> List[SortItem]:
     """Returns the same sort as indicated except with the direction reversed.
     This is useful for determining if there would be earlier results going in
@@ -191,7 +208,7 @@ def reverse_sort(
     result: List[SortItem] = []
     for item in sort:
         reversed_dir: SortDir
-        if mode == 'swap_exclusivity':
+        if mode == "swap_exclusivity":
             if item.dir == SortDir.ASCENDING:
                 reversed_dir = SortDir.DESCENDING_EQUAL
             elif item.dir == SortDir.ASCENDING_EQUAL:
@@ -201,8 +218,8 @@ def reverse_sort(
             elif item.dir == SortDir.DESCENDING_EQUAL:
                 reversed_dir = SortDir.ASCENDING
             else:
-                raise ValueError(f'Unknown sort direction: {item.dir}')
-        elif mode == 'maintain_exclusivity':
+                raise ValueError(f"Unknown sort direction: {item.dir}")
+        elif mode == "maintain_exclusivity":
             if item.dir == SortDir.ASCENDING:
                 reversed_dir = SortDir.DESCENDING
             elif item.dir == SortDir.ASCENDING_EQUAL:
@@ -212,30 +229,29 @@ def reverse_sort(
             elif item.dir == SortDir.DESCENDING_EQUAL:
                 reversed_dir = SortDir.ASCENDING_EQUAL
             else:
-                raise ValueError(f'Unknown sort direction: {item.dir}')
-        elif mode == 'make_inclusive':
+                raise ValueError(f"Unknown sort direction: {item.dir}")
+        elif mode == "make_inclusive":
             if item.dir in (SortDir.ASCENDING, SortDir.ASCENDING_EQUAL):
                 reversed_dir = SortDir.DESCENDING_EQUAL
             elif item.dir in (SortDir.DESCENDING, SortDir.DESCENDING_EQUAL):
                 reversed_dir = SortDir.ASCENDING_EQUAL
             else:
-                raise ValueError(f'Unknown sort direction: {item.dir}')
-        elif mode == 'make_exclusive':
+                raise ValueError(f"Unknown sort direction: {item.dir}")
+        elif mode == "make_exclusive":
             if item.dir in (SortDir.ASCENDING, SortDir.ASCENDING_EQUAL):
                 reversed_dir = SortDir.DESCENDING
             elif item.dir in (SortDir.DESCENDING, SortDir.DESCENDING_EQUAL):
                 reversed_dir = SortDir.ASCENDING
             else:
-                raise ValueError(f'Unknown sort direction: {item.dir}')
+                raise ValueError(f"Unknown sort direction: {item.dir}")
         else:
-            raise ValueError(f'Unknown mode: {mode}')
+            raise ValueError(f"Unknown mode: {mode}")
 
-        result.append(SortItem[item.__sortkeyt__(), item.__valuet__()](
-            key=item.key,
-            dir=reversed_dir,
-            before=None,
-            after=item.after
-        ))
+        result.append(
+            SortItem[item.__sortkeyt__(), item.__valuet__()](
+                key=item.key, dir=reversed_dir, before=None, after=item.after
+            )
+        )
 
     return result
 
@@ -243,7 +259,7 @@ def reverse_sort(
 def get_next_page_sort(
     first_item: Optional[Dict[str, Any]],
     last_item: Optional[Dict[str, Any]],
-    sort: List[SortItem]
+    sort: List[SortItem],
 ) -> List[SortItem]:
     """Determines the correct sort for the next page based on the
     fields of the last item on the previous page, which usually
@@ -267,11 +283,11 @@ def get_next_page_sort(
         before = None
         after = None
         if first_item is not None:
-            assert srt.key in first_item, f'{srt.key} not in {first_item}'
+            assert srt.key in first_item, f"{srt.key} not in {first_item}"
             before = first_item[srt.key]
 
         if last_item is not None:
-            assert srt.key in last_item, f'Sort key {srt.key} not in last item'
+            assert srt.key in last_item, f"Sort key {srt.key} not in last item"
             after = last_item[srt.key]
 
         exclusive_dir: SortDir
@@ -282,14 +298,11 @@ def get_next_page_sort(
         elif srt.dir == SortDir.DESCENDING_EQUAL:
             exclusive_dir = SortDir.DESCENDING
         else:
-            raise ValueError(f'Unknown sort direction: {srt.dir}')
+            raise ValueError(f"Unknown sort direction: {srt.dir}")
 
         result.append(
             SortItem[srt.__sortkeyt__(), srt.__valuet__()](
-                srt.key,
-                exclusive_dir,
-                before,
-                after
+                srt.key, exclusive_dir, before, after
             )
         )
 

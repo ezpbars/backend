@@ -25,7 +25,7 @@ class ProgressBarStep(BaseModel):
     progress_bar_name: str = Field(
         description="the name of the progress bar to which this step belongs"
     )
-    uid: str = Field(description="the primary stable identifyer for this progress bar")
+    uid: str = Field(description="the primary stable identifier for this progress bar")
     name: str = Field(
         description="the human-readable name for identifying this progress bar"
     )
