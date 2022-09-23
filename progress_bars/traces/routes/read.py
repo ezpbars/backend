@@ -65,7 +65,7 @@ class ReadProgressBarTraceRequest(BaseModel):
 
 class ReadProgressBarTraceResponse(BaseModel):
     items: List[ProgressBarTrace] = Field(
-        description="the items matchign the results in the given sort"
+        description="the items matching the results in the given sort"
     )
     next_page_sort: Optional[List[ProgressBarTraceSortOption]] = Field(
         description="if there is a next page of results, the sort to use to get the page"
