@@ -16,7 +16,7 @@ ERROR_404_TYPE = Literal["pbar_not_found", "trace_not_found"]
     status_code=204,
     responses={
         "404": {
-            "description": "not found - there is no progress bar trace with that uid",
+            "description": "not found - there is no progress bar with that name or it does not have a trace with that uid",
             "model": StandardErrorResponse[ERROR_404_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,
