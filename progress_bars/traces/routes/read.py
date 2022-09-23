@@ -163,7 +163,7 @@ async def raw_read_progress_bar_trace(
     def pseudocolumn(key: str) -> Term:
         if key == "user_sub":
             return users.sub
-        elif key == "progres_bar_name":
+        elif key == "progress_bar_name":
             return progress_bars.name
         elif key in ("uid", "created_at"):
             return progress_bar_traces.field(key)
