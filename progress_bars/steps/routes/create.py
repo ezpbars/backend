@@ -12,10 +12,10 @@ router = APIRouter()
 
 
 class CreateProgressBarStepRequest(BaseModel):
-    iterated: int = Field(
-        0,
-        description="""1 if the step is iterated, i.e., it consists of
-  many, identical, smaller steps, 0 for a one-off step, i.e., a step which is
+    iterated: bool = Field(
+        False,
+        description="""True if the step is iterated, i.e., it consists of
+  many, identical, smaller steps, False for a one-off step, i.e., a step which is
   not repeated. Ignored for the default step""",
     )
     one_off_technique: Literal[
@@ -76,9 +76,9 @@ class CreateProgressBarStepResponse(BaseModel):
     position: int = Field(
         description="when the step occurs within the overall task, i.e., 1 is the first step. The default step has a position of 0",
     )
-    iterated: int = Field(
-        description="""1 if the step is iterated, i.e., it consists of
-  many, identical, smaller steps, 0 for a one-off step, i.e., a step which is
+    iterated: bool = Field(
+        description="""True if the step is iterated, i.e., it consists of
+  many, identical, smaller steps, False for a one-off step, i.e., a step which is
   not repeated. Ignored for the default step"""
     )
     one_off_technique: Literal[
@@ -176,7 +176,7 @@ async def create_progress_bar_step(
         now = time.time()
         step_uid = "ep_pbs_" + secrets.token_urlsafe(8)
         conn = await itgs.conn()
-        cursor = conn.cursor("none")
+        cursor = conn.cursor("strong")
         response = await cursor.executemany3(
             (
                 (
@@ -217,14 +217,15 @@ async def create_progress_bar_step(
                         AND NOT EXISTS (
                             SELECT 1 FROM progress_bar_steps
                             WHERE
-                              progress_bar_step.progress_bar_id = progress_bars.id
-                              AND progress_bar_step.name = ?
+                              progress_bar_steps.progress_bar_id = progress_bars.id
+                              AND progress_bar_steps.name = ?
                         )
+                        AND progress_bars.name = ?
                     """,
                     (
                         step_uid,
                         step_name,
-                        args.iterated,
+                        int(args.iterated),
                         args.one_off_technique,
                         args.one_off_percentile,
                         args.iterated_technique,
@@ -232,11 +233,13 @@ async def create_progress_bar_step(
                         now,
                         auth_result.result.sub,
                         step_name,
+                        pbar_name,
                     ),
-                )(
+                ),
+                (
                     """
                     UPDATE progress_bars
-                    SET progress_bars.version = progress_bars.version + 1
+                    SET version = version + 1
                     WHERE
                         EXISTS (
                             SELECT 1 FROM progress_bar_steps
@@ -281,7 +284,8 @@ async def create_progress_bar_step(
                     iterated=args.iterated,
                     one_off_technique=args.one_off_technique,
                     one_off_percentile=args.one_off_percentile,
-                    iterated_technique=args.iterated_percentile,
+                    iterated_technique=args.iterated_technique,
+                    iterated_percentile=args.iterated_percentile,
                     created_at=now,
                 ).dict(),
                 status_code=201,

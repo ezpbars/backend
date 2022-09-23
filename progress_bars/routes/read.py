@@ -34,6 +34,9 @@ class ProgressBar(BaseModel):
     sampling_technique: str = Field(
         description="the technique to use when selecting samples to be used for prediction"
     )
+    version: int = Field(
+        description="the number of times the steps and traces had to be reset because we received a trace with different steps or it was updated via the api"
+    )
     created_at: float = Field(
         description="when the progress bar was created in seconds since the unix epoch"
     )
@@ -172,6 +175,7 @@ async def raw_read_progress_bars(
             progress_bars.sampling_max_count,
             progress_bars.sampling_max_age_seconds,
             progress_bars.sampling_technique,
+            progress_bars.version,
             progress_bars.created_at,
             progress_bar_steps.uid,
             progress_bar_steps.iterated,
@@ -220,19 +224,20 @@ async def raw_read_progress_bars(
                 sampling_max_count=row[3],
                 sampling_max_age_seconds=row[4],
                 sampling_technique=row[5],
-                created_at=row[6],
+                version=row[6],
+                created_at=row[7],
                 default_step_config=ProgressBarStep(
-                    uid=row[7],
+                    uid=row[8],
                     name="default",
                     user_sub=row[0],
                     progress_bar_name=row[2],
                     position=0,
-                    iterated=row[8],
-                    one_off_technique=row[9],
-                    one_off_percentile=row[10],
-                    iterated_technique=row[11],
-                    iterated_percentile=row[12],
-                    created_at=row[13],
+                    iterated=bool(row[9]),
+                    one_off_technique=row[10],
+                    one_off_percentile=row[11],
+                    iterated_technique=row[12],
+                    iterated_percentile=row[13],
+                    created_at=row[14],
                 ),
             )
         )

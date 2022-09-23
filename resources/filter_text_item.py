@@ -4,12 +4,13 @@ from .standard_text_operator import StandardTextOperator
 from pypika import Parameter
 from pypika.terms import Term
 from pypika import Criterion
-from db.utils import CaseInsensitiveCriterion
+from db.utils import CaseInsensitiveCriterion, EscapeCriterion
 
 
 @dataclass
 class FilterTextItem:
     """Describes a filter against a text pseudocolumn"""
+
     operator: StandardTextOperator
     """The operator to use when comparing the value to the pseudocolumn"""
 
@@ -37,11 +38,11 @@ class FilterTextItem:
             .where(email_filter.applied_to(users.email, qargs))
         )
 
-        print(query.get_sql())  # SELECT "email" FROM "users" WHERE "email" LIKE ?
+        print(query.get_sql())  # SELECT "email" FROM "users" WHERE "email" LIKE ? ESCAPE '\\'
         print(qargs) # ['tim%']
         ```
         """
-        p = Parameter('?')
+        p = Parameter("?")
         if self.operator == StandardTextOperator.EQUAL_CASE_SENSITIVE:
             if self.value is None:
                 return term.isnull()
@@ -86,32 +87,28 @@ class FilterTextItem:
             if self.value is None:
                 return Term.wrap_constant(False)
             qargs.append(self.value)
-            return term.like(p)
+            return EscapeCriterion(term.like(p))
 
-        raise ValueError(f'Unsupported operator: {self.operator}')
+        raise ValueError(f"Unsupported operator: {self.operator}")
 
-    def to_model(self) -> 'FilterTextItemModel':
+    def to_model(self) -> "FilterTextItemModel":
         """Returns the pydantic representation"""
-        return FilterTextItemModel(
-            operator=self.operator.value,
-            value=self.value
-        )
+        return FilterTextItemModel(operator=self.operator.value, value=self.value)
 
 
 class FilterTextItemModel(BaseModel):
     operator: StandardTextOperator = Field(
-        title='Operator',
-        description='The operator to use when comparing the value to the pseudocolumn',
+        title="Operator",
+        description="The operator to use when comparing the value to the pseudocolumn",
     )
 
     value: str = Field(
-        title='Value',
-        description='The value to compare the pseudocolumn to',
+        title="Value",
+        description="The value to compare the pseudocolumn to",
     )
 
     def to_result(self) -> FilterTextItem:
         """Returns the standard internal representation"""
         return FilterTextItem(
-            operator=StandardTextOperator(self.operator),
-            value=self.value
+            operator=StandardTextOperator(self.operator), value=self.value
         )

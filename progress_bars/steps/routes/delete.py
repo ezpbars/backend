@@ -48,7 +48,7 @@ async def delete_progress_bar_step(
                 status_code=409,
             )
         conn = await itgs.conn()
-        cursor = conn.cursor("none")
+        cursor = conn.cursor("strong")
         response = await cursor.execute(
             """
             SELECT

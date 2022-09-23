@@ -15,11 +15,11 @@ def question_mark_list(num: int) -> str:
     Returns:
         list: List of question marks.
     """
-    return ','.join(['?'] * num)
+    return ",".join(["?"] * num)
 
 
 class StringComparator(Comparator):
-    concat = '||'
+    concat = "||"
 
 
 def sqlite_string_concat(a: Union[str, Term], b: Union[str, Term]) -> ComplexCriterion:
@@ -32,7 +32,7 @@ def sqlite_string_concat(a: Union[str, Term], b: Union[str, Term]) -> ComplexCri
     return ComplexCriterion(
         StringComparator.concat,
         a if not isinstance(a, str) else Term.wrap_constant(a),
-        b if not isinstance(b, str) else Term.wrap_constant(b)
+        b if not isinstance(b, str) else Term.wrap_constant(b),
     )
 
 
@@ -42,11 +42,12 @@ class ParenthisizeCriterion(Criterion):
     Args:
         criterion (Criterion): The criterion to parenthesize.
     """
+
     def __init__(self, criterion: Criterion):
         self.criterion = criterion
 
     def get_sql(self, *args, **kwargs) -> str:
-        return f'({self.criterion.get_sql(*args, **kwargs)})'
+        return f"({self.criterion.get_sql(*args, **kwargs)})"
 
 
 class CaseInsensitiveCriterion(Criterion):
@@ -56,8 +57,27 @@ class CaseInsensitiveCriterion(Criterion):
     Args:
         criterion (Criterion): The criterion to perform case insensitively.
     """
+
     def __init__(self, criterion: Criterion):
         self.criterion = criterion
 
     def get_sql(self, *args, **kwargs) -> str:
-        return f'{self.criterion.get_sql(*args, **kwargs)} COLLATE NOCASE'
+        return f"{self.criterion.get_sql(*args, **kwargs)} COLLATE NOCASE"
+
+
+class EscapeCriterion(Criterion):
+    """A criterion which we add ESCAPE '\\' to, e.g.,
+    users.email LIKE ? ESCAPE '\\'
+
+    Args:
+        criterion (Criterion): The criterion to perform case insensitively.
+    """
+
+    def __init__(self, criterion: Criterion, character="\\"):
+        assert len(character) == 1, "only single characters allowed"
+        assert character != "'", "cannot use a quote as the escape character"
+        self.criterion = criterion
+        self.character = character
+
+    def get_sql(self, *args, **kwargs) -> str:
+        return f"{self.criterion.get_sql(*args, **kwargs)} ESCAPE '{self.character}'"

@@ -32,9 +32,9 @@ class ProgressBarStep(BaseModel):
     position: int = Field(
         description="when the step occurs within the overall task, i.e., 1 is the first step. The default step has a position of 0",
     )
-    iterated: int = Field(
-        description="""1 if the step is iterated, i.e., it consists of
-  many, identical, smaller steps, 0 for a one-off step, i.e., a step which is
+    iterated: bool = Field(
+        description="""True if the step is iterated, i.e., it consists of
+  many, identical, smaller steps, False for a one-off step, i.e., a step which is
   not repeated. Ignored for the default step"""
     )
     one_off_technique: Literal[
@@ -226,7 +226,7 @@ async def raw_read_progress_bar_steps(
         .join(progress_bars)
         .on(progress_bars.id == progress_bar_steps.progress_bar_id)
         .join(users)
-        .on(users.id == progress_bars.id)
+        .on(users.id == progress_bars.user_id)
     )
     qargs = []
 
@@ -262,7 +262,7 @@ async def raw_read_progress_bar_steps(
                 uid=row[2],
                 name=row[3],
                 position=row[4],
-                iterated=row[5],
+                iterated=bool(row[5]),
                 one_off_technique=row[6],
                 one_off_percentile=row[7],
                 iterated_technique=row[8],
@@ -270,7 +270,7 @@ async def raw_read_progress_bar_steps(
                 created_at=row[10],
             )
         )
-        return items
+    return items
 
 
 def item_pseudocolumns(item: ProgressBarStep) -> dict:

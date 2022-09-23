@@ -132,7 +132,7 @@ async def update_progress_bar_step(
     args: UpdateProgressBarStepRequest,
     pbar_name: str,
     step_name: str,
-    authorizaiton: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
 ):
     """updates the progress bar step with the given name which belongs to the
     corresponsing progress bar. Only works if the progress bar belongs to you,
@@ -141,7 +141,7 @@ async def update_progress_bar_step(
     This accepts cognito or user token authentication. You can read more about
     the forms of authentication at [/rest_auth.html](/rest_auth.html)"""
     async with Itgs() as itgs:
-        auth_result = await auth_any(itgs, authorizaiton)
+        auth_result = await auth_any(itgs, authorization)
         if not auth_result.success:
             return auth_result.error_response
         if step_name == "default":

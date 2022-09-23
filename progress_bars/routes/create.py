@@ -65,6 +65,9 @@ class CreateProgressBarResponse(BaseModel):
     sampling_technique: str = Field(
         description="the technique to use when selecting samples to be used for prediction"
     )
+    version: int = Field(
+        description="the number of times the steps and traces had to be reset because we received a trace with different steps or it was updated via the api"
+    )
     created_at: float = Field(
         description="when the progress bar was created in seconds since the unix epoch"
     )
@@ -116,11 +119,12 @@ async def create_progress_bar(
                         sampling_max_count,
                         sampling_max_age_seconds,
                         sampling_technique,
+                        version,
                         created_at
                     )
                     SELECT
                         users.id,
-                        ?, ?, ?, ?, ?, ?
+                        ?, ?, ?, ?, ?, ?, ?
                     FROM users
                     WHERE
                         users.sub = ?
@@ -137,6 +141,7 @@ async def create_progress_bar(
                         args.sampling_max_count,
                         args.sampling_max_age_seconds,
                         args.sampling_technique,
+                        0,
                         now,
                         auth_result.result.sub,
                         args.name,
@@ -189,12 +194,13 @@ async def create_progress_bar(
                     sampling_max_count=args.sampling_max_count,
                     sampling_max_age_seconds=args.sampling_max_age_seconds,
                     sampling_technique=args.sampling_technique,
+                    version=0,
                     created_at=now,
                     default_step_config=CreateProgressBarStepResponse(
                         uid=step_uid,
                         name="default",
                         position=0,
-                        iterated=0,
+                        iterated=False,
                         one_off_technique=args.default_step_config.one_off_technique,
                         one_off_percentile=args.default_step_config.one_off_percentile,
                         iterated_technique=args.default_step_config.iterated_technique,
