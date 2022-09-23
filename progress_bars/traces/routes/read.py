@@ -80,7 +80,7 @@ class ReadProgressBarTraceResponse(BaseModel):
 async def read_progress_bar_trace(
     args: ReadProgressBarTraceRequest, authorization: Optional[str] = Header(None)
 ):
-    """lists out the traces for a users progress bars; the user_sub filter wil lbe forced to match
+    """lists out the traces for a users progress bars; the user_sub filter will be forced to match
     the authorized user
 
     This accepts cognito or user token authentication. You can read more about the
