@@ -34,10 +34,14 @@ if os.environ.get("ENVIRONMENT") == "dev":
         allow_headers=["Authorization"],
     )
 app.include_router(
-    continuous_deployment.router.router, prefix="/api/1/continuous_deployment"
+    continuous_deployment.router.router,
+    prefix="/api/1/continuous_deployment",
+    tags=["continuous_deployment"],
 )
-app.include_router(users.router.router, prefix="/api/1/users")
-app.include_router(progress_bars.router.router, prefix="/api/1/progress_bars")
+app.include_router(users.router.router, prefix="/api/1/users", tags=["users"])
+app.include_router(
+    progress_bars.router.router, prefix="/api/1/progress_bars", tags=["progress_bars"]
+)
 app.router.redirect_slashes = False
 
 
