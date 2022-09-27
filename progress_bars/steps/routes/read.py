@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from auth import auth_any
 from itgs import Itgs
 from models import STANDARD_ERRORS_BY_CODE
-from resources.filter_item import FilterItem
+from resources.filter_item import FilterItem, FilterItemModel
 from resources.filter_text_item import FilterTextItem, FilterTextItemModel
 from resources.sort import cleanup_sort, get_next_page_sort, reverse_sort
 from resources.filter import sort_criterion, flattened_filters
@@ -110,6 +110,9 @@ class ProgressBarStepFilter(BaseModel):
     )
     progress_bar_name: Optional[FilterTextItemModel] = Field(
         None, description="the name of the progress bar the step belongs to"
+    )
+    position: Optional[FilterItemModel[int]] = Field(
+        None, description="the position of the step within the progress bar"
     )
 
 
