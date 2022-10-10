@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse, Response
 from redis.asyncio.client import Pipeline
 from pydantic import BaseModel, Field, validator
 from fastapi import APIRouter, Header
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Tuple
 from auth import auth_any
 from itgs import Itgs
 import time
@@ -43,9 +43,18 @@ class CreateProgressBarTraceStepRequest(BaseModel):
             raise ValueError("iterations must be greater than or equal to iteration")
         return iterations
 
+    @validator("done")
+    def done_must_be_true_if_iteration_is_iterations(cls, done, values: dict):
+        if done and values.get("iteration") != values.get("iterations"):
+            raise ValueError("done must be false if iteration is not iterations")
+        return done
+
 
 ERROR_404_TYPE = Literal["trace_not_found"]
 """the error type for a 404 response"""
+ERROR_409_TYPE = Literal[
+    "trace_completed", "missing_start_time", "step_changed", "backwards_progress"
+]
 
 
 @router.post(
@@ -54,6 +63,10 @@ ERROR_404_TYPE = Literal["trace_not_found"]
         "404": {
             "description": "there is no in progress trace with that uid for that progress bar",
             "model": StandardErrorResponse[ERROR_404_TYPE],
+        },
+        "409": {
+            "description": "the specified step is incompatible with the current state of the trace",
+            "model": StandardErrorResponse[ERROR_409_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,
     },
@@ -80,15 +93,27 @@ async def create_progress_bar_trace_step(
         redis = await itgs.redis()
         trace_key = f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.trace_uid}"
 
-        async def try_update_trace(pipe: Pipeline) -> bool:
+        async def try_update_trace(pipe: Pipeline) -> Tuple[bool, Optional[Response]]:
             result: List[bytes] = await pipe.hmget(
                 trace_key,
                 ["current_step", "done"],
             )
             if result[0] is None:
-                return False
+                return False, JSONResponse(
+                    StandardErrorResponse[ERROR_404_TYPE](
+                        type="trace_not_found",
+                        message="there is no in progress trace with that uid for that progress bar",
+                    ).dict(),
+                    status_code=404,
+                )
             if result[1] == b"1":
-                return False
+                return False, JSONResponse(
+                    StandardErrorResponse[ERROR_409_TYPE](
+                        type="trace_completed",
+                        message="the specified step is incompatible with the current state of the trace",
+                    ).dict(),
+                    status_code=409,
+                )
             current_step = int(result[0])
             current_step_key = f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.trace_uid}:step:{current_step}"
             next_step_key = f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.trace_uid}:step:{current_step + 1}"
@@ -97,7 +122,13 @@ async def create_progress_bar_trace_step(
                 ["step_name", "iteration", "iterations"],
             )
             if result[0] is None:
-                return False
+                return False, JSONResponse(
+                    {
+                        "message": "integrity error: the trace exists but not its current step"
+                    },
+                    headers={"retry-after": "5"},
+                    status_code=503,
+                )
             step_name: str = result[0].decode("utf-8")
             iterations: Optional[int] = int(result[2]) if result[2] != b"0" else None
             iteration: Optional[int] = (
@@ -105,7 +136,18 @@ async def create_progress_bar_trace_step(
             )
             if step_name != args.step_name:
                 if args.done or args.iteration is not None and args.iteration != 0:
-                    return False  # we're missing when the step started
+                    return False, JSONResponse(
+                        StandardErrorResponse[ERROR_409_TYPE](
+                            type="missing_start_time",
+                            message=(
+                                "attempting to start a new step but the new step is not in its initial state,"
+                                " i.e., either done is true, or the step is iterated and not at its first iteration;"
+                                " this means we don't know when this new step started, which is critical for statistics"
+                            ),
+                        ).dict(),
+                        status_code=409,
+                    )
+                await pipe.multi()
                 if iterations is not None:
                     await pipe.hset(current_step_key, "iteration", iterations)
                 await pipe.hset(current_step_key, "finished_at", now)
@@ -130,13 +172,32 @@ async def create_progress_bar_trace_step(
                 return True
 
             if args.iterations != iterations:
-                return False
+                return False, JSONResponse(
+                    StandardErrorResponse[ERROR_409_TYPE](
+                        type="step_changed",
+                        message=(
+                            "you provided new information on the same step in the same trace,"
+                            " but it either was iterated and is no longer iterated, or was not"
+                            " iterated and is now iterated - you need to be consistent"
+                        ),
+                    ).dict(),
+                    status_code=409,
+                )
             if iterations is not None and args.iteration < iteration:
-                return False
+                return False, JSONResponse(
+                    StandardErrorResponse[ERROR_409_TYPE](
+                        type="backwards_progress",
+                        message=(
+                            "you provided new information on the same step in the same trace,"
+                            " but it was iterated and the iteration is less than the previous iteration"
+                        ),
+                    ).dict(),
+                    status_code=409,
+                )
 
             if args.done:
-                if args.iteration != iterations:
-                    return False
+                assert args.iteration == iterations
+                await pipe.multi()
                 await pipe.hmset(
                     current_step_key,
                     {
@@ -153,22 +214,17 @@ async def create_progress_bar_trace_step(
                 )
                 return True
 
+            await pipe.multi()
             await pipe.hset(trace_key, "last_updated_at", now)
             if args.iteration is not None and args.iteration != iteration:
                 await pipe.hset(current_step_key, "iteration", args.iteration)
             return True
 
-        result = await redis.transaction(
+        result: Tuple[bool, Optional[Response]] = await redis.transaction(
             try_update_trace, trace_key, value_from_callable=True
         )
-        if not result:
-            return JSONResponse(
-                StandardErrorResponse[ERROR_404_TYPE](
-                    type="trace_not_found",
-                    message="there is no in progress trace with that uid for that progress bar",
-                ).dict(),
-                status_code=404,
-            )
+        if not result[0]:
+            return result[1]
         await redis.publish(
             f"ps:trace:{auth_result.result.sub}:{args.pbar_name}:{args.trace_uid}",
             "updated trace",
