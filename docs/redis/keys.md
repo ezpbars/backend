@@ -28,3 +28,4 @@ the keys that we use in redis
 
 - `ps:trace:{user_sub}:{progress_bar_name}:{trace_uid}`: gets sent one message with arbitrary content whenever the corresponding trace is updated (or created) in redis
 - `ps:job:{job_uid}`: used, if supported, when a job is able to report when it's completed
+- `updates:{repo}`: used to indicate that the main branch of the given repository was updated

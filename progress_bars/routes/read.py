@@ -72,7 +72,7 @@ class ProgressBarFilter(BaseModel):
 
 class ReadProgressbarRequest(BaseModel):
     filters: Optional[ProgressBarFilter] = Field(
-        None, description="the filters to apply"
+        default_factory=ProgressBarFilter, description="the filters to apply"
     )
     sort: Optional[List[ProgressBarSortOption]] = Field(
         None, description="the order to sort by"

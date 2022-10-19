@@ -145,7 +145,7 @@ ERROR_409_TYPE = Literal["step_name_already_exists"]
             "model": StandardErrorResponse[ERROR_409_TYPE],
         },
         "404": {
-            "description": "the progress bar step with that name does not exist",
+            "description": "the progress bar with that name does not exist",
             "model": StandardErrorResponse[ERROR_404_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,

@@ -60,17 +60,19 @@ async def delete_progress_bar_step(
                 progress_bar_steps.uid,
                 progress_bar_steps.position
             FROM progress_bars
-            LEFT OUTER JOIN progress_bar_steps ON progress_bars.id = progress_bar_steps.progress_bar_id
+            LEFT OUTER JOIN progress_bar_steps ON (
+                progress_bars.id = progress_bar_steps.progress_bar_id
+                AND progress_bar_steps.name = ?
+            )
             WHERE
                 progress_bars.name = ?
-                AND progress_bar_steps.name = ?
                 AND EXISTS (
                     SELECT 1 FROM users
                     WHERE users.id = progress_bars.user_id
                       AND users.sub = ?
                 )
             """,
-            (pbar_name, step_name, auth_result.result.sub),
+            (step_name, pbar_name, auth_result.result.sub),
         )
         if not response.results:
             return JSONResponse(
