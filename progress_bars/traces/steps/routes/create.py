@@ -147,20 +147,20 @@ async def create_progress_bar_trace_step(
                         ).dict(),
                         status_code=409,
                     )
-                await pipe.multi()
+                pipe.multi()
                 if iterations is not None:
                     await pipe.hset(current_step_key, "iteration", iterations)
                 await pipe.hset(current_step_key, "finished_at", now)
-                await pipe.hmset(
+                await pipe.hset(
                     trace_key,
-                    {
+                    mapping={
                         "last_updated_at": now,
                         "current_step": current_step + 1,
                     },
                 )
-                await pipe.hmset(
+                await pipe.hset(
                     next_step_key,
-                    {
+                    mapping={
                         "step_name": args.step_name,
                         "started_at": now,
                         "iteration": 0,
@@ -169,7 +169,9 @@ async def create_progress_bar_trace_step(
                         else 0,
                     },
                 )
-                return True
+                for key in [current_step_key, trace_key, next_step_key]:
+                    await pipe.expire(key, 86400)
+                return True, None
 
             if args.iterations != iterations:
                 return False, JSONResponse(
@@ -197,28 +199,32 @@ async def create_progress_bar_trace_step(
 
             if args.done:
                 assert args.iteration == iterations
-                await pipe.multi()
-                await pipe.hmset(
+                pipe.multi()
+                await pipe.hset(
                     current_step_key,
-                    {
+                    mapping={
                         "iteration": iterations if iterations is not None else 0,
                         "finished_at": now,
                     },
                 )
-                await pipe.hmset(
+                await pipe.hset(
                     trace_key,
-                    {
+                    mapping={
                         "last_updated_at": now,
                         "done": 1,
                     },
                 )
-                return True
+                for key in [current_step_key, trace_key]:
+                    await pipe.expire(key, 86400)
+                return True, None
 
-            await pipe.multi()
+            pipe.multi()
             await pipe.hset(trace_key, "last_updated_at", now)
             if args.iteration is not None and args.iteration != iteration:
                 await pipe.hset(current_step_key, "iteration", args.iteration)
-            return True
+            for key in [trace_key, current_step_key]:
+                await pipe.expire(key, 86400)
+            return True, None
 
         result: Tuple[bool, Optional[Response]] = await redis.transaction(
             try_update_trace, trace_key, value_from_callable=True
@@ -229,4 +235,12 @@ async def create_progress_bar_trace_step(
             f"ps:trace:{auth_result.result.sub}:{args.pbar_name}:{args.trace_uid}",
             "updated trace",
         )
+        if args.done:
+            jobs = await itgs.jobs()
+            await jobs.enqueue(
+                "runners.handle_completed_trace",
+                user_sub=auth_result.result.sub,
+                pbar_name=args.pbar_name,
+                trace_uid=args.trace_uid,
+            )
         return Response(status_code=204)

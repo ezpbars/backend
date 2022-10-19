@@ -16,7 +16,7 @@ describes a particular step within a progress bar
 - `iterated (integer not null)`: 1 if the step is iterated, i.e., it consists of
   many, identical, smaller steps, 0 for a one-off step, i.e., a step which is
   not repeated. Ignored for the default step
-- `one_off_technique (text null)`: required for non-iterated i.e., one-off
+- `one_off_technique (text not null)`: required for non-iterated i.e., one-off
   steps. The technique to use to predict the time step will take. one of the
   following values:
   - `percentile`: the fastest amount of time slower than a fixed percentage of
@@ -24,13 +24,13 @@ describes a particular step within a progress bar
   - `harmonic_mean`: the harmonic mean of the samples, https://en.wikipedia.org/wiki/Harmonic_mean
   - `geometric_mean`: the geometric mean of the samples, https://en.wikipedia.org/wiki/Geometric_mean
   - `arithmetic_mean`: the arithmetic mean of the samples, https://en.wikipedia.org/wiki/Arithmetic_mean
-- `one_off_percentile (real null)`: required for non-iterated steps using the
+- `one_off_percentile (real not null)`: required for non-iterated steps using the
   percentile technique. the percent of samples which should complete faster than
   the predicted amount of time. for example, `25` means a quarter of samples
   complete before the progress bar reaches the end. Typically, a high value,
   such as 90, is chosen, since it's better to surprise the user with a faster
   result, than to annoy them with a slower result.
-- `iterated_technique (text null)`: required for iterated steps. The technique
+- `iterated_technique (text not null)`: required for iterated steps. The technique
   used to predict the time the step takes, unless otherwise noted, the technique
   is applied to the normalized speed, i.e., the speed divided by the number of
   iterations and the prediction is the predicted normalized speed multiplied by
@@ -42,7 +42,7 @@ describes a particular step within a progress bar
   - `harmonic_mean`: see one_off_technique
   - `geometric_mean`: see one_off_technique
   - `arithmetic_mean`: see one_off_technique
-- `iterated_percentile (real null)`: see one-off percentile
+- `iterated_percentile (real not null)`: see one-off percentile
 - `created_at (real not null)`: when this record was created in seconds since
   the unix epoch
 
@@ -56,10 +56,10 @@ CREATE TABLE progress_bar_steps(
     name TEXT NOT NULL,
     position INTEGER NOT NULL,
     iterated INTEGER NOT NULL,
-    one_off_technique TEXT NULL,
-    one_off_percentile REAL NULL,
-    iterated_technique TEXT NULL,
-    iterated_percentile REAL NULL,
+    one_off_technique TEXT NOT NULL,
+    one_off_percentile REAL NOT NULL,
+    iterated_technique TEXT NOT NULL,
+    iterated_percentile REAL NOT NULL,
     created_at REAL NOT NULL
 );
 /* foreign key, uniqueness */

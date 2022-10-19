@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, validator
 from resources.uids import is_safe_uid
 from fastapi import APIRouter, Header
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 from auth import auth_any
 from itgs import Itgs
 import time
@@ -92,24 +92,33 @@ async def create_trace(
         if abs(now - args.now) < 300:
             now = args.now
         async with redis.pipeline(True) as pipe:
-            await pipe.hmset(
-                f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}",
-                {
+            pipe.multi()
+            keys: List[str] = []
+            keys.append(f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}")
+            await pipe.hset(
+                keys[-1],
+                mapping={
                     "created_at": now,
                     "last_updated_at": now,
                     "current_step": 1,
                     "done": "0",
                 },
             )
-            await pipe.hmset(
-                f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}:step:1",
-                {
+            keys.append(
+                f"trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}:step:1"
+            )
+            await pipe.hset(
+                keys[-1],
+                mapping={
                     "step_name": args.step_name,
                     "iteration": 0,
                     "iterations": args.iterations or 0,
                     "started_at": now,
                 },
             )
+            for key in keys:
+                await pipe.expire(key, 86400)
+
             await pipe.execute()
         await redis.publish(
             f"ps:trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}", "created"

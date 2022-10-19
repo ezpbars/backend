@@ -40,10 +40,10 @@ async def up(itgs: Itgs) -> None:
             name TEXT NOT NULL,
             position INTEGER NOT NULL,
             iterated INTEGER NOT NULL,
-            one_off_technique TEXT NULL,
-            one_off_percentile REAL NULL,   
-            iterated_technique TEXT NULL,
-            iterated_percentile REAL NULL,
+            one_off_technique TEXT NOT NULL,
+            one_off_percentile REAL NOT NULL,   
+            iterated_technique TEXT NOT NULL,
+            iterated_percentile REAL NOT NULL,
             created_at REAL NOT NULL
         );"""
     )
