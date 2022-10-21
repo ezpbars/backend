@@ -58,7 +58,7 @@ class ProgressBarTraceFilter(BaseModel):
 
 class ReadProgressBarTraceRequest(BaseModel):
     filters: Optional[ProgressBarTraceFilter] = Field(
-        None, description="the filters to apply"
+        default_factory=ProgressBarTraceFilter, description="the filters to apply"
     )
     sort: Optional[List[ProgressBarTraceSortOption]] = Field(
         None, description="the order to sort by"

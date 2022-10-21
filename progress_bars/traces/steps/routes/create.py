@@ -1,4 +1,3 @@
-from pickle import TRUE
 from models import STANDARD_ERRORS_BY_CODE, StandardErrorResponse
 from fastapi.responses import JSONResponse, Response
 from redis.asyncio.client import Pipeline
