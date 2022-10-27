@@ -68,7 +68,7 @@ async def create_user_token(
         if not auth_result.success:
             return auth_result.error_response
         new_token = "ep_ut_" + secrets.token_urlsafe(48)
-        uid = secrets.token_urlsafe(16)
+        uid = "ep_ut_uid_" + secrets.token_urlsafe(16)
         now = time.time()
         conn = await itgs.conn()
         cursor = conn.cursor("none")

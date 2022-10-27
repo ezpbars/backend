@@ -31,7 +31,7 @@ following values:
 - `geometric_mean`: the geometric mean of the samples, https://en.wikipedia.org/wiki/Geometric_mean
 - `arithmetic_mean`: the arithmetic mean of the samples, https://en.wikipedia.org/wiki/Arithmetic_mean""",
     )
-    one_off_percentile: int = Field(
+    one_off_percentile: float = Field(
         75,
         description="""required for non-iterated steps using the
   percentile technique. the percent of samples which should complete faster than
@@ -63,7 +63,7 @@ following values:
   - `geometric_mean`: see one_off_technique
   - `arithmetic_mean`: see one_off_technique""",
     )
-    iterated_percentile: int = Field(
+    iterated_percentile: float = Field(
         75, description="see one-off percentile", ge=0, le=100
     )
 
@@ -94,7 +94,7 @@ following values:
 - `geometric_mean`: the geometric mean of the samples, https://en.wikipedia.org/wiki/Geometric_mean
 - `arithmetic_mean`: the arithmetic mean of the samples, https://en.wikipedia.org/wiki/Arithmetic_mean""",
     )
-    one_off_percentile: int = Field(
+    one_off_percentile: float = Field(
         description="""required for non-iterated steps using the
   percentile technique. the percent of samples which should complete faster than
   the predicted amount of time. for example, `25` means a quarter of samples
@@ -122,7 +122,7 @@ following values:
   - `geometric_mean`: see one_off_technique
   - `arithmetic_mean`: see one_off_technique""",
     )
-    iterated_percentile: int = Field(description="see one-off percentile")
+    iterated_percentile: float = Field(description="see one-off percentile")
     created_at: float = Field(
         description="when the progress bar was created in seconds since the unix epoch"
     )
@@ -145,7 +145,7 @@ ERROR_409_TYPE = Literal["step_name_already_exists"]
             "model": StandardErrorResponse[ERROR_409_TYPE],
         },
         "404": {
-            "description": "the progress bar step with that name does not exist",
+            "description": "the progress bar with that name does not exist",
             "model": StandardErrorResponse[ERROR_404_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,

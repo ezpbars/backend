@@ -16,7 +16,7 @@ ERROR_404_TYPE = Literal["not_found"]
     status_code=204,
     responses={
         "404": {
-            "description": "not found - ther is no progress bar with that name",
+            "description": "not found - there is no progress bar with that name",
             "model": StandardErrorResponse[ERROR_404_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,

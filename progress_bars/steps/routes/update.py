@@ -118,7 +118,7 @@ following values:
     status_code=200,
     responses={
         "409": {
-            "description": "conflict- you cannot edit the default step",
+            "description": "conflict- you cannot edit the default step; you can edit that information using the update progress bar endpoint",
             "model": StandardErrorResponse[ERROR_409_TYPE],
         },
         "404": {
@@ -149,7 +149,8 @@ async def update_progress_bar_step(
                 content=StandardErrorResponse[ERROR_409_TYPE](
                     type="cannot_edit_default_step",
                     message="you may not edit the default step",
-                )
+                ).dict(),
+                status_code=409,
             )
         conn = await itgs.conn()
         cursor = conn.cursor("none")

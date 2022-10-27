@@ -118,7 +118,7 @@ class ProgressBarStepFilter(BaseModel):
 
 class ReadProgressBarStepRequest(BaseModel):
     filters: Optional[ProgressBarStepFilter] = Field(
-        None, description="the filters to apply"
+        default_factory=ProgressBarStepFilter, description="the filters to apply"
     )
     sort: Optional[List[ProgressBarStepSortOption]] = Field(
         None, description="the order to sort by"

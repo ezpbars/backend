@@ -70,7 +70,7 @@ class UpdateProgressBarResponse(BaseModel):
     status_code=200,
     responses={
         "404": {
-            "description": "conflict - too many unexpired user tokens",
+            "description": "not found: the progress bar does not exist",
             "model": StandardErrorResponse[ERROR_404_TYPE],
         },
         **STANDARD_ERRORS_BY_CODE,

@@ -44,6 +44,7 @@ CREATE TABLE progress_bars(
     sampling_max_count INTEGER NOT NULL,
     sampling_max_age_seconds INTEGER NULL,
     sampling_technique TEXT NOT NULL,
+    version INTEGER NOT NULL,
     created_at REAL NOT NULL
 );
 /* foreign key, uniqueness */
