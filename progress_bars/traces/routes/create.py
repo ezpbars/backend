@@ -1,9 +1,10 @@
 from models import STANDARD_ERRORS_BY_CODE, StandardErrorResponse
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, validator
+from typing import List, Literal, Optional
 from resources.uids import is_safe_uid
 from fastapi import APIRouter, Header
-from typing import List, Literal, Optional
+from datetime import datetime, timezone
 from auth import auth_any
 from itgs import Itgs
 import time
@@ -123,4 +124,7 @@ async def create_trace(
         await redis.publish(
             f"ps:trace:{auth_result.result.sub}:{args.pbar_name}:{args.uid}", "created"
         )
+        now = datetime.now(tz=timezone.utc)
+
+        await redis.hincrby(f"tcount:{now.year}:{now.month}", auth_result.result.sub, 1)
         return Response(status_code=204)
