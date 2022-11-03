@@ -11,8 +11,6 @@ stores the coarse usage information for each user and approximate time informati
 - `period_started_at (real not null)`: the approximate time of the first trace in the period
 - `period_ended_at (real not null)`: the approximate time of the last trace in the period
 - `stripe_invoice_id (integer null references stripe_invoices(id) on delete set null)`: the id of the invoice in the stripe_invoices table
-- KEY: user_id
-- KEY: period_started_at
 
 ## schema
 

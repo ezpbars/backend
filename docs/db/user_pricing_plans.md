@@ -8,7 +8,6 @@ the pricing plans each user has
 - `uid (text unique not null)`: primary stable identifier
 - `user_id (integer unique not null references users(id) on delete cascade)`: the id of the user the pricing plan belongs to
 - `pricing_plan_id (integer not null references pricing_plans_id(id) on delete cascade)`: the id of the pricing plan
-- KEY: `user_pricing_plans(pricing_plan_id)`- foreign key
 
 ## schema
 

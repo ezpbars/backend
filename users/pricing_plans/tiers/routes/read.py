@@ -19,7 +19,9 @@ from pypika.terms import ExistsCriterion, Term
 class UserPricingPlanTier(BaseModel):
     user_sub: str = Field(description="the sub of the user")
     uid: str = Field(description="the uid of the pricing plan tier")
-    position: int = Field(description="the position of the tier in the pricing plan")
+    position: int = Field(
+        description="the position of the tier in the pricing plan, starting at 0"
+    )
     units: Optional[int] = Field(description="the number of units the tier covers")
     unit_amount: int = Field(description="the amount of traces per unit")
     unit_price_cents: int = Field(

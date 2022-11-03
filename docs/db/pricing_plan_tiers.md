@@ -12,7 +12,6 @@ the cost per unit for the tiers of each pricing plan
 -   `units (integer null)`: how many units are in this tier before you get to the next
     tier. null iff there are no higher tiers. positive
 -   `unit_price_cents (integer not null)`: price per unit in this tier
--   UNIQUE KEY: `pricing_plan_tiers(pricing_plan_id, position)`: uniqueness, foreign key
 
 ## schema
 
