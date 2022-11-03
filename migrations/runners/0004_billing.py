@@ -65,13 +65,15 @@ async def up(itgs: Itgs) -> None:
             traces INTEGER NOT NULL,
             period_started_at REAL NOT NULL,
             period_ended_at REAL NOT NULL,
-            stripe_invoice_id TEXT NULL
+            stripe_invoice_id INTEGER NULL REFERENCES stripe_invoices(id) ON DELETE SET NULL
         )
         """
     )
-    await cursor.execute("""CREATE INDEX user_usages_user_id ON user_usages(user_id)""")
     await cursor.execute(
-        """CREATE INDEX user_usages_period_started_at ON user_usages(period_started_at)"""
+        "CREATE UNIQUE INDEX user_usages_user_id_period_started_at ON user_usages(user_id, period_started_at)"
+    )
+    await cursor.execute(
+        "CREATE INDEX user_usages_stripe_invoice_id ON user_usages(stripe_invoice_id);"
     )
     await cursor.execute(
         """
