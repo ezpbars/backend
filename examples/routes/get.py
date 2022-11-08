@@ -18,7 +18,7 @@ ERROR_404_TYPE = Literal["not_found"]
 
 
 @router.get(
-    "/get_example_result",
+    "/job",
     response_model=ExampleJobResponse,
     status_code=200,
     responses={

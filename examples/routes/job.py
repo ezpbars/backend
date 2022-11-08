@@ -34,7 +34,7 @@ class ExampleResponse(BaseModel):
 async def example_job(args: ExampleRequest):
     """starts an example job, which computes a random number between 1 and
     10000 asynchronously.
-    the result can be retrieved using the [get_example_result](#/examples/get_example_result_api_1_examples_get_example_result_get) endpoint
+    the result can be retrieved using the [get_example_result](#/examples/get_example_result_api_1_examples_job_get) endpoint
     """
     async with Itgs() as itgs:
         uid = "ep_t_" + secrets.token_urlsafe(16)
