@@ -2,7 +2,7 @@ import secrets
 import time
 from typing import Literal, Optional
 from fastapi import APIRouter, Header
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from auth import auth_any
 from itgs import Itgs
