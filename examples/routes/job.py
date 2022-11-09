@@ -4,7 +4,8 @@ import aiohttp
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 import secrets
-
+from fastapi.responses import JSONResponse
+from example_user import get_example_user_token
 from itgs import Itgs
 
 router = APIRouter()
@@ -30,6 +31,7 @@ class ExampleResponse(BaseModel):
 @router.post(
     "/job",
     response_model=ExampleResponse,
+    status_code=200,
 )
 async def example_job(args: ExampleRequest):
     """starts an example job, which computes a random number between 1 and
@@ -41,10 +43,12 @@ async def example_job(args: ExampleRequest):
         sub = os.environ["EXAMPLE_USER_SUB"]
         pbar_name = f"example_{args.stdev}"
         jobs = await itgs.jobs()
+        token = await get_example_user_token(itgs)
 
         async with aiohttp.ClientSession() as session:
             await session.post(
                 url=f'{os.environ["ROOT_BACKEND_URL"]}/api/1/progress_bars/traces/',
+                headers={"Authorization": f"bearer {token}"},
                 json={
                     "pbar_name": pbar_name,
                     "uid": uid,
@@ -60,4 +64,7 @@ async def example_job(args: ExampleRequest):
             duration=args.duration,
             stdev=args.stdev,
         )
-        return ExampleResponse(uid=uid, sub=sub, pbar_name=pbar_name)
+        return JSONResponse(
+            content=ExampleResponse(uid=uid, sub=sub, pbar_name=pbar_name).dict(),
+            status_code=200,
+        )

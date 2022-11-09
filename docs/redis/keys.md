@@ -24,6 +24,7 @@ the keys that we use in redis
 - `tcount:{user_sub}:{progress_bar_name}:{version}`: a sorted set where the values are arbitrary and the scores are the timestamps in seconds since the unix epoch of when the trace occurred. Can be used to calulate the number of traces in a given time period. Clipped to the sampling max age in seconds.
 - `tcount:{utc_year}:{utc_month}`: goes to a hash where the keys are user subs and the values are the number of traces created by the user in the specified month based on the stored trace created at 
 - `example:{uid}`: stores the result of the example job with the given uid
+- `example_user_token`: stores the user token for the example user
 
 ## pubsub keys
 
